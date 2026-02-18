@@ -6,18 +6,18 @@ Base de arquitectura DDD con backend en .NET y frontend en React + Tailwind.
 
 Para trazabilidad tecnica completa de lo implementado hasta ahora (fases, decisiones, estado real y pendientes), revisar:
 
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/docs/HISTORICO.md`
+- `docs/HISTORICO.md`
 
 ## Integracion Front/Back
 
 Contrato tecnico inicial para conectar frontend y backend del flujo de publicacion/inscripcion:
 
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/docs/INTEGRACION_FRONT_BACK.md`
+- `docs/INTEGRACION_FRONT_BACK.md`
 
 ## Estructura
 
 ```
-/Users/danielelis/RiderProjects/ProcesosAcademicos
+.
 ├── src/
 │   ├── Backend/
 │   │   ├── Core/
@@ -56,24 +56,24 @@ Estado actual del backend:
 ## Ejecutar frontend
 
 ```bash
-cd /Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web
+cd src/Web/procesos-academicos-web
 npm install
 npm run dev
 ```
 
 Rutas del frontend demo:
 
-- `http://localhost:5173/` redirige a `/login`
-- `http://localhost:5173/login`
-- `http://localhost:5173/dashboard/estudiante?page=1`
-- `http://localhost:5173/dashboard/profesor?page=1`
-- `http://localhost:5173/dashboard/director?page=1`
+- `/` redirige a `/login`
+- `/login`
+- `/dashboard/estudiante?page=1`
+- `/dashboard/profesor?page=1`
+- `/dashboard/director?page=1`
 
 Rutas de modulos por rol:
 
-- Director: `http://localhost:5173/dashboard/director/cursos?page=1`, `http://localhost:5173/dashboard/director/profesores?page=1`, `http://localhost:5173/dashboard/director/estudiantes?page=1`, `http://localhost:5173/dashboard/director/reportes?page=1`
-- Profesor: `http://localhost:5173/dashboard/profesor/mis-clases?page=1`, `http://localhost:5173/dashboard/profesor/horario?page=1`, `http://localhost:5173/dashboard/profesor/reportes?page=1`, `http://localhost:5173/dashboard/profesor/estudiantes?page=1`
-- Estudiante: `http://localhost:5173/dashboard/estudiante/perfil`, `http://localhost:5173/dashboard/estudiante/registro-academico?page=1`, `http://localhost:5173/dashboard/estudiante/configuracion`
-- Estudiante (inscripciones): `http://localhost:5173/dashboard/estudiante/mis-cursos`
+- Director: `/dashboard/director/cursos?page=1`, `/dashboard/director/profesores?page=1`, `/dashboard/director/estudiantes?page=1`, `/dashboard/director/reportes?page=1`
+- Profesor: `/dashboard/profesor/mis-clases?page=1`, `/dashboard/profesor/horario?page=1`, `/dashboard/profesor/reportes?page=1`, `/dashboard/profesor/estudiantes?page=1`
+- Estudiante: `/dashboard/estudiante/perfil`, `/dashboard/estudiante/registro-academico?page=1`, `/dashboard/estudiante/configuracion`
+- Estudiante (inscripciones): `/dashboard/estudiante/mis-cursos`
 
 Nota: por ahora el frontend esta desacoplado del backend y no realiza llamadas a API.

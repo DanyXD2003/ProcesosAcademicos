@@ -24,14 +24,14 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
   - `Application -> Domain`
   - `Infrastructure -> Application + Domain`
   - `Api -> Application + Infrastructure`
-- Estructura inicial de carpetas bajo `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend`.
+- Estructura inicial de carpetas bajo `src/Backend`.
 
 **Archivos clave**
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/ProcesosAcademicos.sln`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj`
+- `ProcesosAcademicos.sln`
+- `src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj`
+- `src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj`
+- `src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj`
+- `src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj`
 
 **Decisiones y tradeoffs**
 - Se priorizo estructura sobre complejidad funcional.
@@ -54,11 +54,11 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
 - Implementacion de datos mock locales.
 
 **Archivos clave**
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/main.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/App.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/AppRouter.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/layout/DashboardLayout.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/mocks/*.js`
+- `src/Web/procesos-academicos-web/src/main.jsx`
+- `src/Web/procesos-academicos-web/src/App.jsx`
+- `src/Web/procesos-academicos-web/src/router/AppRouter.jsx`
+- `src/Web/procesos-academicos-web/src/components/layout/DashboardLayout.jsx`
+- `src/Web/procesos-academicos-web/src/mocks/*.js`
 
 **Decisiones y tradeoffs**
 - Se desacoplo frontend de API para avanzar diseño e interaccion temprano.
@@ -85,12 +85,12 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
 - Paginacion por query param (`?page=`) en modulos con listas/tablas.
 
 **Archivos clave**
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/paths.js`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/navigation/sidebarItems.js`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/navigation/RoleSidebar.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/pages/Director*.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/pages/Professor*.jsx`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/pages/Student*.jsx`
+- `src/Web/procesos-academicos-web/src/router/paths.js`
+- `src/Web/procesos-academicos-web/src/navigation/sidebarItems.js`
+- `src/Web/procesos-academicos-web/src/components/navigation/RoleSidebar.jsx`
+- `src/Web/procesos-academicos-web/src/pages/Director*.jsx`
+- `src/Web/procesos-academicos-web/src/pages/Professor*.jsx`
+- `src/Web/procesos-academicos-web/src/pages/Student*.jsx`
 
 **Decisiones y tradeoffs**
 - Se eligio slugs en espanol para consistencia con el dominio del negocio.
@@ -112,11 +112,11 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
 - Uso de `.gitkeep` en carpetas vacias para conservar estructura en git.
 
 **Archivos clave conservados**
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/ProcesosAcademicos.sln`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj`
+- `ProcesosAcademicos.sln`
+- `src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj`
+- `src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj`
+- `src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj`
+- `src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj`
 
 **Decisiones y tradeoffs**
 - Se prefirio mantener esqueleto de proyectos para facilitar arranque posterior.
@@ -183,19 +183,19 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
 
 ### Componentes base reutilizables
 - Layout/navegacion:
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/layout/DashboardLayout.jsx`
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/navigation/RoleSidebar.jsx`
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/navigation/TopHeader.jsx`
+  - `src/Web/procesos-academicos-web/src/components/layout/DashboardLayout.jsx`
+  - `src/Web/procesos-academicos-web/src/components/navigation/RoleSidebar.jsx`
+  - `src/Web/procesos-academicos-web/src/components/navigation/TopHeader.jsx`
 - UI comun:
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/common/StatCard.jsx`
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/common/PaginationControls.jsx`
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/domain/SectionCard.jsx`
-  - `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/components/director/AssignProfessorModal.jsx`
+  - `src/Web/procesos-academicos-web/src/components/common/StatCard.jsx`
+  - `src/Web/procesos-academicos-web/src/components/common/PaginationControls.jsx`
+  - `src/Web/procesos-academicos-web/src/components/domain/SectionCard.jsx`
+  - `src/Web/procesos-academicos-web/src/components/director/AssignProfessorModal.jsx`
 
 ### Fuentes de datos mock
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/mocks/student.mock.js`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/mocks/professor.mock.js`
-- `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/mocks/director.mock.js`
+- `src/Web/procesos-academicos-web/src/mocks/student.mock.js`
+- `src/Web/procesos-academicos-web/src/mocks/professor.mock.js`
+- `src/Web/procesos-academicos-web/src/mocks/director.mock.js`
 
 ---
 
@@ -203,17 +203,17 @@ Este archivo debe actualizarse al cierre de cada bloque de trabajo relevante.
 
 | Area | Archivo/Carpeta | Estado | Observaciones |
 |---|---|---|---|
-| Solucion | `/Users/danielelis/RiderProjects/ProcesosAcademicos/ProcesosAcademicos.sln` | Activo | Conserva proyectos backend y estructura de solucion. |
-| Backend - Domain | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj` | Activo | Proyecto base sin logica de dominio implementada. |
-| Backend - Application | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj` | Activo | Referencia a Domain intacta. |
-| Backend - Infrastructure | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj` | Activo | Referencias a Application y Domain intactas. |
-| Backend - Api | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj` | Activo | Referencias a Application e Infrastructure intactas. |
-| Backend - Carpetas vacias | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Backend/**/.gitkeep` | Activo | Preserva estructura en git. |
-| Frontend - Router | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/AppRouter.jsx` | Activo | Rutas por rol y modulos registradas. |
-| Frontend - Paths | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/paths.js` | Activo | Contrato centralizado de rutas. |
-| Frontend - Sidebar | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/navigation/sidebarItems.js` | Activo | Menus funcionales por rol. |
-| Frontend - Paginas | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/pages/` | Activo | Dashboards y modulos visuales sin backend. |
-| Frontend - Mocks | `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/mocks/` | Activo | Datos estaticos para demo visual. |
+| Solucion | `ProcesosAcademicos.sln` | Activo | Conserva proyectos backend y estructura de solucion. |
+| Backend - Domain | `src/Backend/Core/ProcesosAcademicos.Domain/ProcesosAcademicos.Domain.csproj` | Activo | Proyecto base sin logica de dominio implementada. |
+| Backend - Application | `src/Backend/Application/ProcesosAcademicos.Application/ProcesosAcademicos.Application.csproj` | Activo | Referencia a Domain intacta. |
+| Backend - Infrastructure | `src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/ProcesosAcademicos.Infrastructure.csproj` | Activo | Referencias a Application y Domain intactas. |
+| Backend - Api | `src/Backend/Api/ProcesosAcademicos.Api/ProcesosAcademicos.Api.csproj` | Activo | Referencias a Application e Infrastructure intactas. |
+| Backend - Carpetas vacias | `src/Backend/**/.gitkeep` | Activo | Preserva estructura en git. |
+| Frontend - Router | `src/Web/procesos-academicos-web/src/router/AppRouter.jsx` | Activo | Rutas por rol y modulos registradas. |
+| Frontend - Paths | `src/Web/procesos-academicos-web/src/router/paths.js` | Activo | Contrato centralizado de rutas. |
+| Frontend - Sidebar | `src/Web/procesos-academicos-web/src/navigation/sidebarItems.js` | Activo | Menus funcionales por rol. |
+| Frontend - Paginas | `src/Web/procesos-academicos-web/src/pages/` | Activo | Dashboards y modulos visuales sin backend. |
+| Frontend - Mocks | `src/Web/procesos-academicos-web/src/mocks/` | Activo | Datos estaticos para demo visual. |
 
 ---
 
@@ -268,7 +268,7 @@ Actualizar este archivo al cierre de cada iteracion relevante usando el siguient
 - **Autor/Equipo:** `nombre o squad`
 - **Objetivo de la iteracion:** `descripcion breve`
 - **Cambios principales:** `lista de cambios`
-- **Archivos clave afectados:** `paths absolutos`
+- **Archivos clave afectados:** `paths relativos del repositorio`
 - **Impacto tecnico:** `arquitectura, rutas, contratos, build`
 - **Pendientes abiertos:** `checklist`
 
@@ -280,7 +280,7 @@ Actualizar este archivo al cierre de cada iteracion relevante usando el siguient
 ---
 
 ## Referencias Rapidas
-- Onboarding general: `/Users/danielelis/RiderProjects/ProcesosAcademicos/README.md`
-- Router principal frontend: `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/AppRouter.jsx`
-- Contrato de rutas frontend: `/Users/danielelis/RiderProjects/ProcesosAcademicos/src/Web/procesos-academicos-web/src/router/paths.js`
-- Solucion backend: `/Users/danielelis/RiderProjects/ProcesosAcademicos/ProcesosAcademicos.sln`
+- Onboarding general: `README.md`
+- Router principal frontend: `src/Web/procesos-academicos-web/src/router/AppRouter.jsx`
+- Contrato de rutas frontend: `src/Web/procesos-academicos-web/src/router/paths.js`
+- Solucion backend: `ProcesosAcademicos.sln`
