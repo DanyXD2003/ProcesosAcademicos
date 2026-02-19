@@ -14,6 +14,12 @@ Contrato tecnico inicial para conectar frontend y backend del flujo de publicaci
 
 - `docs/INTEGRACION_FRONT_BACK.md`
 
+## Guia De Implementacion Backend Con IA
+
+Playbook operativo para ejecutar la implementacion del backend por fases (DDD + EF Core code-first):
+
+- `docs/CODEX_BACKEND.md`
+
 ## Estructura
 
 ```

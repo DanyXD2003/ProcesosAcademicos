@@ -5,7 +5,6 @@ import AssignGradesModal from "../components/professor/AssignGradesModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { professorDashboardMock } from "../mocks/professor.mock";
 import { getProfessorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 3;
@@ -19,10 +18,14 @@ function statusTone(status) {
     return "bg-amber-500/20 text-amber-200";
   }
 
-  return "bg-slate-700 text-slate-300";
+  if (status === "Borrador") {
+    return "bg-slate-700 text-slate-300";
+  }
+
+  return "bg-rose-500/20 text-rose-200";
 }
 
-function getClassProgress(course, students, grades) {
+function getClassProgress(students, grades) {
   if (students.length === 0) {
     return 0;
   }
@@ -35,8 +38,9 @@ export default function ProfessorDashboardPage() {
   const {
     classGrades,
     closeClass,
-    professorClasses,
     professorClassStudents,
+    professorClasses,
+    professorProfile,
     professorStats,
     publishClassGrades,
     setDraftGrade
@@ -64,7 +68,7 @@ export default function ProfessorDashboardPage() {
     <>
       <DashboardLayout
         navItems={getProfessorSidebarItems()}
-        profile={professorDashboardMock.profile}
+        profile={professorProfile}
         roleLabel="Profesor"
         searchPlaceholder="Buscar curso o alumno"
         subtitle="Periodo academico 2026-1"
@@ -85,7 +89,7 @@ export default function ProfessorDashboardPage() {
           <div className="space-y-4">
             {currentClasses.map((course) => {
               const students = professorClassStudents[course.id] ?? [];
-              const progress = getClassProgress(course, students, classGrades[course.id]);
+              const progress = getClassProgress(students, classGrades[course.id]);
 
               return (
                 <article className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5" key={course.id}>
@@ -93,7 +97,10 @@ export default function ProfessorDashboardPage() {
                     <div>
                       <div className="mb-2 flex items-center gap-2">
                         <span className="rounded-full bg-sky-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-sky-200">
-                          Seccion {course.id}
+                          Seccion {course.section}
+                        </span>
+                        <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-semibold uppercase text-slate-200">
+                          {course.offeringCode}
                         </span>
                         <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusTone(course.status)}`}>
                           {course.status}
@@ -106,7 +113,7 @@ export default function ProfessorDashboardPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-white">{course.title}</h3>
                       <p className="mt-1 text-sm text-slate-400">
-                        {course.code} | {students.length} estudiantes
+                        {course.code} | {students.length} estudiantes | Termino {course.term}
                       </p>
                     </div>
 

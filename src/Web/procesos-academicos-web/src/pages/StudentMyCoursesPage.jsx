@@ -10,15 +10,15 @@ function normalizeText(value) {
   return value.toLowerCase().trim();
 }
 
-function CourseRow({ action, actionLabel, badgeClassName, badgeLabel, course }) {
+function OfferingRow({ action, actionLabel, badgeClassName, badgeLabel, course }) {
   return (
     <article className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">{course.code}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">{course.offeringCode}</p>
           <h3 className="mt-1 text-base font-semibold text-white">{course.course}</h3>
           <p className="mt-1 text-xs text-slate-400">
-            {course.career} | Seccion {course.section}
+            Base: {course.baseCourseCode} | Seccion {course.section} | Termino {course.term}
           </p>
           <p className="mt-1 text-xs text-slate-400">
             Profesor: {course.professor} | Cupos: {course.seats}
@@ -44,11 +44,12 @@ function CourseRow({ action, actionLabel, badgeClassName, badgeLabel, course }) 
 
 export default function StudentMyCoursesPage() {
   const {
-    availableCoursesForEnrollment,
-    enrollStudentInCourse,
+    availableOfferingsForEnrollment,
+    enrollStudentInOffering,
     pendingCurriculumCount,
+    pendingCurriculumCourses,
     profile,
-    studentActiveCourses,
+    studentActiveOfferings,
     studentCareer
   } = useAcademicDemo();
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,27 +61,31 @@ export default function StudentMyCoursesPage() {
   const filteredAvailableCourses = useMemo(() => {
     const query = normalizeText(searchTerm);
     if (!query) {
-      return availableCoursesForEnrollment;
+      return availableOfferingsForEnrollment;
     }
 
-    return availableCoursesForEnrollment.filter((course) => normalizeText(`${course.code} ${course.course}`).includes(query));
-  }, [availableCoursesForEnrollment, searchTerm]);
+    return availableOfferingsForEnrollment.filter((course) =>
+      normalizeText(`${course.offeringCode} ${course.baseCourseCode} ${course.course}`).includes(query)
+    );
+  }, [availableOfferingsForEnrollment, searchTerm]);
 
   const filteredActiveCourses = useMemo(() => {
     const query = normalizeText(searchTerm);
     if (!query) {
-      return studentActiveCourses;
+      return studentActiveOfferings;
     }
 
-    return studentActiveCourses.filter((course) => normalizeText(`${course.code} ${course.course}`).includes(query));
-  }, [searchTerm, studentActiveCourses]);
+    return studentActiveOfferings.filter((course) =>
+      normalizeText(`${course.offeringCode} ${course.baseCourseCode} ${course.course}`).includes(query)
+    );
+  }, [searchTerm, studentActiveOfferings]);
 
   return (
     <DashboardLayout
       navItems={getStudentSidebarItems()}
       profile={profile}
       roleLabel="Estudiante"
-      searchPlaceholder="Buscar curso disponible"
+      searchPlaceholder="Buscar oferta disponible"
       subtitle="Cursos segun carrera activa y pensum"
       title="Mis cursos"
     >
@@ -95,17 +100,35 @@ export default function StudentMyCoursesPage() {
         </article>
         <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
           <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Cursos activos</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-200">{studentActiveCourses.length}</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-200">{studentActiveOfferings.length}</p>
         </article>
       </section>
 
-      <SectionCard subtitle="Cursos de tu carrera que puedes inscribir en esta etapa" title="Cursos disponibles para inscribirse">
+      <SectionCard subtitle="Cursos base que aun debes aprobar para completar tu pensum" title="Cursos pendientes del pensum">
+        <div className="grid gap-3 md:grid-cols-2">
+          {pendingCurriculumCourses.length > 0 ? (
+            pendingCurriculumCourses.map((course) => (
+              <article className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3" key={course.courseId}>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-300">{course.code}</p>
+                <p className="mt-1 text-sm font-semibold text-white">{course.subject}</p>
+                <p className="mt-1 text-xs text-slate-400">Semestre sugerido: {course.termNumber}</p>
+              </article>
+            ))
+          ) : (
+            <p className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-emerald-200">
+              No tienes cursos pendientes en tu pensum actual.
+            </p>
+          )}
+        </div>
+      </SectionCard>
+
+      <SectionCard subtitle="Ofertas publicadas de tu carrera para el termino vigente" title="Cursos disponibles para inscribirse">
         <label className="mb-4 block">
           <span className="mb-2 block text-xs uppercase tracking-[0.12em] text-slate-400">Busqueda</span>
           <input
             className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Codigo o nombre del curso"
+            placeholder="Codigo de oferta, curso base o nombre"
             type="text"
             value={searchTerm}
           />
@@ -114,18 +137,18 @@ export default function StudentMyCoursesPage() {
         <div className="space-y-3">
           {filteredAvailableCourses.length > 0 ? (
             filteredAvailableCourses.map((course) => (
-              <CourseRow
-                action={() => enrollStudentInCourse(course.code)}
+              <OfferingRow
+                action={() => enrollStudentInOffering(course.offeringId)}
                 actionLabel="Inscribirme"
                 badgeClassName="bg-amber-500/20 text-amber-200"
                 badgeLabel="Disponible"
                 course={course}
-                key={course.code}
+                key={course.offeringId}
               />
             ))
           ) : (
             <p className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-300">
-              No hay cursos disponibles para inscribirse con los filtros actuales.
+              No hay ofertas disponibles para inscribirse con los filtros actuales.
             </p>
           )}
         </div>
@@ -133,17 +156,17 @@ export default function StudentMyCoursesPage() {
 
       <SectionCard
         right={<span className="text-xs text-slate-400">Cursos en progreso del estudiante</span>}
-        subtitle="Cursos ya inscritos"
+        subtitle="Ofertas en las que ya estas inscrito"
         title="Mis cursos activos"
       >
         <div className="space-y-3">
           {filteredActiveCourses.length > 0 ? (
             filteredActiveCourses.map((course) => (
-              <CourseRow
+              <OfferingRow
                 badgeClassName="bg-emerald-500/20 text-emerald-200"
                 badgeLabel="Activa"
                 course={course}
-                key={course.code}
+                key={course.offeringId}
               />
             ))
           ) : (

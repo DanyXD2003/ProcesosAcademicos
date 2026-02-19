@@ -129,8 +129,8 @@ Impacto para el usuario:
 - Se elimino el atributo horario como dato operativo de cursos en el flujo actual.
 - Se formalizo ciclo de curso:
   - `Borrador -> Publicado -> Activo -> Cerrado`
-- Se formalizo ciclo de solicitudes:
-  - `Solicitado -> En proceso -> Generado`
+- Se simplifico solicitud de documentos:
+  - generacion y emision automatica sin estado visible en UI.
 - Se mantuvo la app en modo datos locales (sin backend).
 
 ---
@@ -196,6 +196,7 @@ Que ya quedo claro para backend:
 - Reglas de negocio que no deben cambiar.
 - Estados de curso y estados de solicitud.
 - Datos minimos que cada pantalla necesita.
+- Identidad operativa por oferta (`courseOfferingId` / `offeringId`) y separacion de curso base vs oferta por periodo.
 
 ---
 
@@ -214,4 +215,3 @@ Que ya quedo claro para backend:
 - Tipo de cambio: Refactor funcional de experiencia por roles
 - Estado: Completado en frontend (modo prototipo visual)
 - Integracion backend: Pendiente de implementacion
-

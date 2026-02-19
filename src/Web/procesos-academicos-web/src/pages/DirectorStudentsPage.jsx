@@ -1,25 +1,17 @@
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 6;
 
-function getAverageGrade(grades) {
-  if (!Array.isArray(grades) || grades.length === 0) {
-    return "-";
-  }
-
-  const total = grades.reduce((sum, value) => sum + value, 0);
-  return (total / grades.length).toFixed(1);
-}
-
 export default function DirectorStudentsPage() {
-  const { page, totalPages, setPage } = usePaginationQuery(directorDashboardMock.studentsRegistry.length, PAGE_SIZE);
+  const { directorProfile, directorStudents } = useAcademicDemo();
+  const { page, totalPages, setPage } = usePaginationQuery(directorStudents.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
-  const students = directorDashboardMock.studentsRegistry.slice(start, start + PAGE_SIZE);
+  const students = directorStudents.slice(start, start + PAGE_SIZE);
 
   return (
     <DashboardLayout
@@ -34,7 +26,7 @@ export default function DirectorStudentsPage() {
         </>
       }
       navItems={getDirectorSidebarItems()}
-      profile={directorDashboardMock.profile}
+      profile={directorProfile}
       roleLabel="Director"
       searchPlaceholder="Buscar estudiante"
       subtitle="Seguimiento de rendimiento estudiantil"
@@ -63,7 +55,7 @@ export default function DirectorStudentsPage() {
                   <td className="px-3 py-3">{student.name}</td>
                   <td className="px-3 py-3 text-slate-300">{student.program}</td>
                   <td className="px-3 py-3 text-slate-300">{student.semester}</td>
-                  <td className="px-3 py-3 text-slate-300">{getAverageGrade(student.courseGrades)}</td>
+                  <td className="px-3 py-3 text-slate-300">{student.average}</td>
                 </tr>
               ))}
             </tbody>

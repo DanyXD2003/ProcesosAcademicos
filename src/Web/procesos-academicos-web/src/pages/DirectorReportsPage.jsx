@@ -3,25 +3,12 @@ import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
-function reportStatusClass(status) {
-  if (status === "Generado") {
-    return "bg-emerald-500/20 text-emerald-200";
-  }
-
-  if (status === "En proceso") {
-    return "bg-amber-500/20 text-amber-200";
-  }
-
-  return "bg-slate-700 text-slate-200";
-}
-
 export default function DirectorReportsPage() {
-  const { reportRequests } = useAcademicDemo();
+  const { directorProfile, reportRequests } = useAcademicDemo();
   const { page, totalPages, setPage } = usePaginationQuery(reportRequests.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
   const reports = reportRequests.slice(start, start + PAGE_SIZE);
@@ -29,7 +16,7 @@ export default function DirectorReportsPage() {
   return (
     <DashboardLayout
       navItems={getDirectorSidebarItems()}
-      profile={directorDashboardMock.profile}
+      profile={directorProfile}
       roleLabel="Director"
       searchPlaceholder="Buscar solicitud"
       subtitle="Historial de reportes solicitados por alumnos"
@@ -48,7 +35,6 @@ export default function DirectorReportsPage() {
                 <th className="px-3 py-3">Estudiante</th>
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha solicitud</th>
-                <th className="px-3 py-3">Estado</th>
                 <th className="px-3 py-3">Fecha emision</th>
                 <th className="px-3 py-3">Descarga</th>
               </tr>
@@ -60,14 +46,9 @@ export default function DirectorReportsPage() {
                   <td className="px-3 py-3">{report.studentName}</td>
                   <td className="px-3 py-3 text-slate-300">{report.requestType}</td>
                   <td className="px-3 py-3 text-slate-300">{report.requestedAt}</td>
-                  <td className="px-3 py-3">
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${reportStatusClass(report.status)}`}>
-                      {report.status}
-                    </span>
-                  </td>
                   <td className="px-3 py-3 text-slate-300">{report.issuedAt || "-"}</td>
                   <td className="px-3 py-3 text-slate-300">
-                    {report.status === "Generado" && report.downloadName ? (
+                    {report.downloadName ? (
                       <button className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-200" type="button">
                         Descargar
                       </button>

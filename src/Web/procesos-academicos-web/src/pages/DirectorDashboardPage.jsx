@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import StatCard from "../components/common/StatCard";
 import AssignProfessorModal from "../components/director/AssignProfessorModal";
@@ -6,21 +6,9 @@ import NewCourseModal from "../components/director/NewCourseModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 4;
-
-function parseSeats(value) {
-  const [usedRaw = "0", capacityRaw = "0"] = `${value}`.split("/");
-  const used = Number(usedRaw);
-  const capacity = Number(capacityRaw);
-
-  return {
-    used: Number.isFinite(used) ? used : 0,
-    capacity: Number.isFinite(capacity) ? capacity : 0
-  };
-}
 
 function progressTone(value) {
   if (value >= 90) {
@@ -51,13 +39,32 @@ function statusTone(status) {
 }
 
 export default function DirectorDashboardPage() {
-  const { careersCatalog, coursesCatalog, createDraftCourse, directorCapacity, directorStats, teacherAvailability, teachers } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(coursesCatalog.length, PAGE_SIZE);
-  const [modalOpen, setModalOpen] = useState(false);
+  const {
+    assignProfessorToOffering,
+    baseCoursesCatalog,
+    careersOptions,
+    createDraftOffering,
+    currentTerm,
+    directorCapacity,
+    directorCourses,
+    directorProfile,
+    directorStats,
+    teacherAvailability,
+    teachers
+  } = useAcademicDemo();
+  const { page, totalPages, setPage } = usePaginationQuery(directorCourses.length, PAGE_SIZE);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [newCourseModalOpen, setNewCourseModalOpen] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState(teachers[0]?.id ?? "");
+  const [selectedOfferingId, setSelectedOfferingId] = useState("");
+
   const startIndex = (page - 1) * PAGE_SIZE;
-  const visibleClasses = coursesCatalog.slice(startIndex, startIndex + PAGE_SIZE);
+  const visibleClasses = directorCourses.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const selectedOffering = useMemo(
+    () => directorCourses.find((item) => item.offeringId === selectedOfferingId) ?? null,
+    [directorCourses, selectedOfferingId]
+  );
 
   const dashboardStats = [
     { icon: "group", label: "Total alumnos", value: `${directorStats.totalStudents}` },
@@ -65,6 +72,21 @@ export default function DirectorDashboardPage() {
     { icon: "class", label: "Clases activas", value: `${directorStats.activeClasses}` },
     { icon: "pending_actions", label: "Clases pendientes", value: `${directorStats.pendingClasses}` }
   ];
+
+  function openAssignModal(course) {
+    setSelectedOfferingId(course.offeringId);
+    setSelectedTeacherId(course.professorId ?? teachers[0]?.id ?? "");
+    setAssignModalOpen(true);
+  }
+
+  function confirmAssignProfessor() {
+    if (!selectedOffering || !selectedTeacherId) {
+      return;
+    }
+
+    assignProfessorToOffering(selectedOffering.offeringId, selectedTeacherId);
+    setAssignModalOpen(false);
+  }
 
   return (
     <>
@@ -79,7 +101,7 @@ export default function DirectorDashboardPage() {
           </button>
         }
         navItems={getDirectorSidebarItems()}
-        profile={directorDashboardMock.profile}
+        profile={directorProfile}
         roleLabel="Director"
         searchPlaceholder="Buscar registros"
         subtitle="Panel administrativo y operativo"
@@ -110,15 +132,14 @@ export default function DirectorDashboardPage() {
               </thead>
               <tbody>
                 {visibleClasses.map((course) => {
-                  const seats = parseSeats(course.seats);
-                  const occupancyPercent = seats.capacity > 0 ? Math.round((seats.used / seats.capacity) * 100) : 0;
+                  const occupancyPercent = course.seatsTotal > 0 ? Math.round((course.seatsTaken / course.seatsTotal) * 100) : 0;
 
                   return (
-                    <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={course.code}>
+                    <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={course.offeringId}>
                       <td className="px-3 py-3">
                         <p className="font-semibold text-white">{course.course}</p>
                         <p className="text-xs text-slate-400">
-                          {course.code} | Seccion {course.section}
+                          {course.offeringCode} | {course.baseCourseCode} | Seccion {course.section}
                         </p>
                       </td>
                       <td className="px-3 py-3">
@@ -142,14 +163,14 @@ export default function DirectorDashboardPage() {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusTone(course.publicationStatus)}`}>
-                          {course.publicationStatus}
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusTone(course.status)}`}>
+                          {course.status}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right">
                         <button
                           className="rounded-lg border border-sky-400/50 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/10"
-                          onClick={() => setModalOpen(true)}
+                          onClick={() => openAssignModal(course)}
                           type="button"
                         >
                           Asignar profesor
@@ -214,18 +235,22 @@ export default function DirectorDashboardPage() {
       </DashboardLayout>
 
       <AssignProfessorModal
-        onClose={() => setModalOpen(false)}
-        onConfirm={() => setModalOpen(false)}
+        offering={selectedOffering}
+        onClose={() => setAssignModalOpen(false)}
+        onConfirm={confirmAssignProfessor}
         onSelect={setSelectedTeacherId}
-        open={modalOpen}
+        open={assignModalOpen}
         selectedTeacherId={selectedTeacherId}
         teachers={teachers}
       />
       <NewCourseModal
-        careers={careersCatalog}
+        baseCourses={baseCoursesCatalog}
+        careers={careersOptions}
+        currentTerm={currentTerm}
         onClose={() => setNewCourseModalOpen(false)}
-        onCreate={createDraftCourse}
+        onCreate={createDraftOffering}
         open={newCourseModalOpen}
+        professors={teachers}
       />
     </>
   );

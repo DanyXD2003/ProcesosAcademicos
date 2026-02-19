@@ -3,13 +3,12 @@ import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { professorDashboardMock } from "../mocks/professor.mock";
 import { getProfessorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
 export default function ProfessorStudentsPage() {
-  const { professorStudentsSummary } = useAcademicDemo();
+  const { professorProfile, professorStudentsSummary } = useAcademicDemo();
   const { page, totalPages, setPage } = usePaginationQuery(professorStudentsSummary.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
   const students = professorStudentsSummary.slice(start, start + PAGE_SIZE);
@@ -17,7 +16,7 @@ export default function ProfessorStudentsPage() {
   return (
     <DashboardLayout
       navItems={getProfessorSidebarItems()}
-      profile={professorDashboardMock.profile}
+      profile={professorProfile}
       roleLabel="Profesor"
       searchPlaceholder="Buscar estudiante"
       subtitle="Listado de alumnos asignados a tus cursos"

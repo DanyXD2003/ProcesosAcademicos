@@ -49,7 +49,7 @@ export default function StudentAcademicRecordPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={`${row.code}-${row.period}`}>
+                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={row.id}>
                   <td className="px-3 py-3 font-semibold text-white">{row.code}</td>
                   <td className="px-3 py-3">{row.subject}</td>
                   <td className="px-3 py-3 text-slate-300">{row.period}</td>

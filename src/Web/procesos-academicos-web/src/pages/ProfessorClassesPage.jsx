@@ -5,7 +5,6 @@ import AssignGradesModal from "../components/professor/AssignGradesModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { professorDashboardMock } from "../mocks/professor.mock";
 import { getProfessorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 3;
@@ -19,7 +18,11 @@ function statusClass(status) {
     return "bg-amber-500/20 text-amber-200";
   }
 
-  return "bg-slate-700 text-slate-300";
+  if (status === "Borrador") {
+    return "bg-slate-700 text-slate-300";
+  }
+
+  return "bg-rose-500/20 text-rose-200";
 }
 
 function progressOfClass(students, grades) {
@@ -35,8 +38,9 @@ export default function ProfessorClassesPage() {
   const {
     classGrades,
     closeClass,
-    professorClasses,
     professorClassStudents,
+    professorClasses,
+    professorProfile,
     publishClassGrades,
     setDraftGrade
   } = useAcademicDemo();
@@ -51,7 +55,7 @@ export default function ProfessorClassesPage() {
     <>
       <DashboardLayout
         navItems={getProfessorSidebarItems()}
-        profile={professorDashboardMock.profile}
+        profile={professorProfile}
         roleLabel="Profesor"
         searchPlaceholder="Buscar clase"
         subtitle="Control de cursos por seccion"
@@ -68,7 +72,8 @@ export default function ProfessorClassesPage() {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="mb-2 flex items-center gap-2">
-                        <span className="rounded-full bg-sky-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-sky-200">Seccion {course.id}</span>
+                        <span className="rounded-full bg-sky-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-sky-200">Seccion {course.section}</span>
+                        <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-semibold uppercase text-slate-200">{course.offeringCode}</span>
                         <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusClass(course.status)}`}>
                           {course.status}
                         </span>
@@ -80,7 +85,7 @@ export default function ProfessorClassesPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-white">{course.title}</h3>
                       <p className="mt-1 text-sm text-slate-400">
-                        {course.code} | {students.length} estudiantes
+                        {course.code} | {students.length} estudiantes | Termino {course.term}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">

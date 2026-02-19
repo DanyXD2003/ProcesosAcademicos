@@ -12,7 +12,7 @@ export default function AssignGradesModal({ classItem, grades, onClose, onGradeC
           <div>
             <h3 className="text-lg font-bold text-sky-200">Asignar notas</h3>
             <p className="text-xs text-slate-400">
-              {classItem.title} ({classItem.code})
+              {classItem.title} ({classItem.offeringCode})
             </p>
           </div>
           <button className="rounded-full p-1 text-slate-400 hover:bg-slate-700 hover:text-white" onClick={onClose} type="button">
@@ -40,7 +40,7 @@ export default function AssignGradesModal({ classItem, grades, onClose, onGradeC
               <tbody>
                 {students.map((student) => (
                   <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={student.id}>
-                    <td className="px-3 py-3 font-semibold text-white">{student.id}</td>
+                    <td className="px-3 py-3 font-semibold text-white">{student.studentCode ?? student.id}</td>
                     <td className="px-3 py-3">{student.name}</td>
                     <td className="px-3 py-3 text-slate-300">{student.career}</td>
                     <td className="px-3 py-3">

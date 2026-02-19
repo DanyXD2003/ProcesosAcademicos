@@ -208,12 +208,12 @@ Respuesta con error:
 | Estudiante | Dashboard | Ver metricas y cursos activos | `GET /api/v1/student/dashboard` |
 | Estudiante | Dashboard | Solicitar certificacion/cierre | `POST /api/v1/student/report-requests` |
 | Estudiante | Mis cursos | Ver cursos disponibles | `GET /api/v1/student/courses/available` |
-| Estudiante | Mis cursos | Inscribirse a curso | `POST /api/v1/student/courses/{courseId}/enroll` |
+| Estudiante | Mis cursos | Inscribirse a curso | `POST /api/v1/student/courses/{offeringId}/enroll` |
 | Estudiante | Mis cursos | Ver cursos activos | `GET /api/v1/student/courses/active` |
 | Estudiante | Perfil | Ver perfil | `GET /api/v1/student/profile` |
 | Estudiante | Registro academico | Ver historial | `GET /api/v1/student/academic-record` |
 | Profesor | Dashboard | Ver KPIs y clases | `GET /api/v1/professor/dashboard` |
-| Profesor | Dashboard/Mis clases | Abrir alumnos de clase | `GET /api/v1/professor/classes/{classId}/students` |
+| Profesor | Dashboard/Mis clases | Abrir alumnos de clase | `GET /api/v1/professor/classes/{classId}/students` *(classId == courseOfferingId)* |
 | Profesor | Dashboard/Mis clases | Guardar borrador de notas | `PUT /api/v1/professor/classes/{classId}/grades/draft` |
 | Profesor | Dashboard/Mis clases | Publicar notas | `POST /api/v1/professor/classes/{classId}/grades/publish` |
 | Profesor | Dashboard/Mis clases | Cerrar curso | `POST /api/v1/professor/classes/{classId}/close` |
@@ -222,7 +222,10 @@ Respuesta con error:
 | Director | Dashboard | Ver disponibilidad docente | `GET /api/v1/director/teacher-availability` |
 | Director | Cursos | Listar cursos | `GET /api/v1/director/courses` |
 | Director | Cursos | Crear curso borrador | `POST /api/v1/director/courses` |
-| Director | Cursos | Publicar curso | `POST /api/v1/director/courses/{courseId}/publish` |
+| Director | Cursos | Publicar curso | `POST /api/v1/director/courses/{offeringId}/publish` |
+| Director | Cursos | Activar curso publicado | `POST /api/v1/director/courses/{offeringId}/activate` |
+| Director | Cursos | Cerrar curso | `POST /api/v1/director/courses/{offeringId}/close` |
+| Director | Cursos | Asignar profesor | `POST /api/v1/director/courses/{offeringId}/assign-professor` |
 | Director | Profesores | Ver directorio | `GET /api/v1/director/professors` |
 | Director | Estudiantes | Ver directorio | `GET /api/v1/director/students` |
 | Director | Reportes | Ver historial solicitudes | `GET /api/v1/director/report-requests` |
@@ -288,11 +291,11 @@ Respuesta con error:
 - Response: paginado `StudentActiveCourseDto`
 - Errores: `STUDENT_PROFILE_NOT_FOUND`
 
-### `POST /api/v1/student/courses/{courseId}/enroll`
+### `POST /api/v1/student/courses/{offeringId}/enroll`
 - Auth: `Estudiante`
 - Request: vacio (path param)
 - Response: `StudentEnrollmentResultDto`
-- Errores: `STUDENT_WITHOUT_CAREER`, `COURSE_NOT_FOUND`, `COURSE_NOT_PUBLISHED`, `COURSE_CAPACITY_EXHAUSTED`, `CAREER_MISMATCH`, `ENROLLMENT_ALREADY_EXISTS`
+- Errores: `STUDENT_WITHOUT_CAREER`, `COURSE_OFFERING_NOT_FOUND`, `COURSE_OFFERING_NOT_PUBLISHED`, `COURSE_OFFERING_CAPACITY_EXHAUSTED`, `CAREER_MISMATCH`, `ENROLLMENT_ALREADY_EXISTS`
 
 ### `GET /api/v1/student/academic-record`
 - Auth: `Estudiante`
@@ -305,6 +308,12 @@ Respuesta con error:
 - Request: `CreateReportRequestDto`
 - Response: `ReportRequestDto`
 - Errores: `REPORT_TYPE_INVALID`
+
+### `GET /api/v1/student/curriculum/progress`
+- Auth: `Estudiante`
+- Query: none
+- Response: `StudentCurriculumProgressDto`
+- Errores: `STUDENT_WITHOUT_CAREER`, `CURRICULUM_VERSION_NOT_ASSIGNED`
 
 ## 6.3 Profesor
 
@@ -321,23 +330,27 @@ Respuesta con error:
 
 ### `GET /api/v1/professor/classes/{classId}/students`
 - Auth: `Profesor`
+- Nota: `classId` representa `courseOfferingId`.
 - Response: `ProfessorClassStudentsDto`
 - Errores: `CLASS_NOT_FOUND`, `FORBIDDEN_CLASS_ACCESS`
 
 ### `PUT /api/v1/professor/classes/{classId}/grades/draft`
 - Auth: `Profesor`
+- Nota: `classId` representa `courseOfferingId`.
 - Request: `UpsertDraftGradesRequestDto`
 - Response: `UpsertDraftGradesResultDto`
 - Errores: `CLASS_NOT_FOUND`, `GRADE_EDIT_LOCKED`, `GRADE_OUT_OF_RANGE`
 
 ### `POST /api/v1/professor/classes/{classId}/grades/publish`
 - Auth: `Profesor`
+- Nota: `classId` representa `courseOfferingId`.
 - Request: none
 - Response: `PublishGradesResultDto`
 - Errores: `CLASS_NOT_FOUND`, `GRADES_ALREADY_PUBLISHED`, `GRADES_INCOMPLETE`
 
 ### `POST /api/v1/professor/classes/{classId}/close`
 - Auth: `Profesor`
+- Nota: `classId` representa `courseOfferingId`.
 - Request: none
 - Response: `CloseClassResultDto`
 - Errores: `CLASS_NOT_FOUND`, `COURSE_CANNOT_CLOSE_UNTIL_GRADES_PUBLISHED`, `CLASS_ALREADY_CLOSED`
@@ -365,13 +378,31 @@ Respuesta con error:
 - Auth: `Director`
 - Request: `CreateDirectorCourseRequestDto`
 - Response: `DirectorCourseDto`
-- Errores: `COURSE_CODE_ALREADY_EXISTS`, `CAREER_NOT_FOUND`, `INVALID_CAPACITY`
+- Errores: `COURSE_OFFERING_CODE_ALREADY_EXISTS`, `COURSE_NOT_FOUND`, `CAREER_NOT_FOUND`, `INVALID_CAPACITY`
 
-### `POST /api/v1/director/courses/{courseId}/publish`
+### `POST /api/v1/director/courses/{offeringId}/publish`
 - Auth: `Director`
 - Request: none
 - Response: `PublishCourseResultDto`
-- Errores: `COURSE_NOT_FOUND`, `COURSE_ALREADY_PUBLISHED`, `COURSE_ALREADY_ACTIVE`, `COURSE_ALREADY_CLOSED`
+- Errores: `COURSE_OFFERING_NOT_FOUND`, `COURSE_OFFERING_ALREADY_PUBLISHED`, `COURSE_OFFERING_ALREADY_ACTIVE`, `COURSE_OFFERING_ALREADY_CLOSED`
+
+### `POST /api/v1/director/courses/{offeringId}/activate`
+- Auth: `Director`
+- Request: none
+- Response: `ActivateCourseResultDto`
+- Errores: `COURSE_OFFERING_NOT_FOUND`, `COURSE_OFFERING_ALREADY_ACTIVE`, `COURSE_OFFERING_ALREADY_CLOSED`
+
+### `POST /api/v1/director/courses/{offeringId}/close`
+- Auth: `Director`
+- Request: none
+- Response: `CloseCourseResultDto`
+- Errores: `COURSE_OFFERING_NOT_FOUND`, `COURSE_CANNOT_CLOSE_UNTIL_GRADES_PUBLISHED`, `COURSE_OFFERING_ALREADY_CLOSED`
+
+### `POST /api/v1/director/courses/{offeringId}/assign-professor`
+- Auth: `Director`
+- Request: `AssignProfessorRequestDto`
+- Response: `AssignProfessorResultDto`
+- Errores: `COURSE_OFFERING_NOT_FOUND`, `PROFESSOR_PROFILE_NOT_FOUND`
 
 ### `GET /api/v1/director/professors`
 - Auth: `Director`
@@ -385,13 +416,41 @@ Respuesta con error:
 
 ### `GET /api/v1/director/report-requests`
 - Auth: `Director`
-- Query: `status?`, `type?`, `page`, `pageSize`
+- Query: `type?`, `page`, `pageSize`
 - Response: paginado `ReportRequestDto`
 
 ### `GET /api/v1/director/teacher-availability`
 - Auth: `Director`
 - Query: none
 - Response: array `TeacherAvailabilityDto`
+
+### `GET /api/v1/director/curriculum-versions`
+- Auth: `Director`
+- Query: `careerId`, `page`, `pageSize`
+- Response: paginado `CurriculumVersionDto`
+
+### `POST /api/v1/director/curriculum-versions`
+- Auth: `Director`
+- Request: `CreateCurriculumVersionRequestDto`
+- Response: `CurriculumVersionDto`
+- Errores: `CAREER_NOT_FOUND`, `CURRICULUM_VERSION_ALREADY_EXISTS`
+
+### `POST /api/v1/director/students/{studentId}/curriculum-assignment`
+- Auth: `Director`
+- Request: `AssignStudentCurriculumRequestDto`
+- Response: `StudentCurriculumAssignmentDto`
+- Errores: `STUDENT_NOT_FOUND`, `CURRICULUM_VERSION_NOT_FOUND`, `CURRICULUM_ASSIGNMENT_CONFLICT`
+
+### `GET /api/v1/director/course-equivalences`
+- Auth: `Director`
+- Query: `careerId?`, `page`, `pageSize`
+- Response: paginado `CourseEquivalenceDto`
+
+### `POST /api/v1/director/course-equivalences`
+- Auth: `Director`
+- Request: `CreateCourseEquivalenceRequestDto`
+- Response: `CourseEquivalenceDto`
+- Errores: `COURSE_NOT_FOUND`, `COURSE_EQUIVALENCE_INVALID`, `COURSE_EQUIVALENCE_DUPLICATE`
 
 ---
 
@@ -403,16 +462,13 @@ Respuesta con error:
 2. `POST /api/v1/student/academic-record/certification-request`
 - Variante dedicada si se separa de `report-requests` general.
 
-3. `POST /api/v1/director/courses/{courseId}/assign-professor`
-- Confirmacion real del modal de asignacion.
-
-4. `GET /api/v1/director/students/export`
+3. `GET /api/v1/director/students/export`
 - Export CSV/Excel del directorio.
 
-5. `POST /api/v1/director/notifications`
+4. `POST /api/v1/director/notifications`
 - Envio de notificaciones desde dashboard estudiantes.
 
-6. `POST /api/v1/director/professors/import`
+5. `POST /api/v1/director/professors/import`
 - Carga masiva desde archivo.
 
 ---
@@ -428,21 +484,47 @@ Respuesta con error:
 - Debe completar `career-enrollment`.
 
 3. Elegibilidad de inscripcion:
-- El curso debe estar en estado `Publicado`.
+- La oferta (`CourseOffering`) debe estar en estado `Publicado`.
 - Debe existir cupo disponible.
-- La carrera del estudiante debe coincidir con la carrera del curso.
+- La carrera del estudiante debe coincidir con la carrera de la oferta.
 - No se permite doble inscripcion del mismo estudiante al mismo curso ofertado.
+- La identidad operativa de inscripcion es `courseOfferingId` (`offeringId` en endpoint).
 
-4. Ciclo de curso:
+4. Curso base vs oferta por periodo:
+- `Course` representa la materia base (identidad academica estable).
+- `CourseOffering` representa la clase ofertada en un periodo (term, seccion, profesor, cupos).
+- El director crea y publica ofertas, no redefine la materia base cada anio.
+
+5. Cohorte y version de pensum:
+- Cada estudiante queda asignado a una version de pensum (`CurriculumVersion`) segun cohorte.
+- Los pendientes se calculan contra esa version de pensum.
+- Cambios de malla futuros no cambian automaticamente la version del estudiante.
+
+6. Calculo academico de pendientes:
+- Un estudiante completa cursos base del pensum, no ofertas puntuales de un anio.
+- `Pendientes = cursos requeridos del pensum - cursos aprobados (incluyendo equivalencias)`.
+- Si aprueba una oferta en 2025, ese curso base no debe aparecer pendiente en 2026.
+
+7. Equivalencias de cursos:
+- Si cambia codigo o nombre de materia, se usa `CourseEquivalence`.
+- Las equivalencias se consideran en el calculo de pendientes y progreso.
+
+8. Ciclo de curso:
 - `Borrador -> Publicado -> Activo -> Cerrado`.
+- La transicion `Publicado -> Activo` en director es manual.
 
-5. Flujo profesor de notas:
+9. Flujo profesor de notas:
 - `draft` editable solo antes de publicar.
 - `publish` bloquea edicion.
 - `close` solo despues de `publish`.
 
-6. Solicitudes de reporte:
-- Estados validos: `Solicitado`, `En proceso`, `Generado`.
+10. Cierre de oferta por director:
+- El director puede cerrar oferta solo si las notas ya fueron publicadas.
+- Si no hay notas publicadas, debe responder `COURSE_CANNOT_CLOSE_UNTIL_GRADES_PUBLISHED`.
+
+11. Solicitudes de reporte:
+- La solicitud se procesa de forma automatica y se emite en el momento.
+- En UI no se expone estado operativo; solo registro de solicitud/emision.
 
 ---
 
@@ -456,7 +538,10 @@ Entidades principales:
 - `Career`
 - `Course`
 - `CourseOffering`
+- `CurriculumVersion`
 - `CurriculumCourse`
+- `StudentCurriculumAssignment`
+- `CourseEquivalence`
 - `Enrollment`
 - `GradeEntry`
 - `AcademicRecord`
@@ -467,7 +552,10 @@ Relaciones clave:
 - Un `User` puede tener uno o varios `Role`.
 - Un `StudentProfile` pertenece a un `User` y puede tener una `Career` activa.
 - Un `Course` puede ofertarse muchas veces (`CourseOffering`) por periodo/seccion.
-- `CurriculumCourse` vincula carrera con cursos del pensum.
+- `CurriculumVersion` versiona el pensum por carrera/cohorte.
+- `CurriculumCourse` vincula una version de pensum con cursos requeridos.
+- `StudentCurriculumAssignment` vincula al estudiante con una version activa de pensum.
+- `CourseEquivalence` permite mapear cambios de codigo entre cursos base.
 - `Enrollment` vincula estudiante con curso ofertado.
 - `GradeEntry` vincula estudiante + curso ofertado para notas.
 - `AcademicRecord` refleja historial consolidado de cursos cursados.
@@ -540,11 +628,38 @@ Relaciones clave:
 - `created_at timestamptz not null`
 
 ### `curriculum_courses`
-- `career_id uuid fk careers(id)`
+- `curriculum_version_id uuid fk curriculum_versions(id)`
 - `course_id uuid fk courses(id)`
 - `term_number smallint null`
 - `is_mandatory boolean not null default true`
-- PK compuesto (`career_id`, `course_id`)
+- PK compuesto (`curriculum_version_id`, `course_id`)
+
+### `curriculum_versions`
+- `id uuid pk`
+- `career_id uuid fk careers(id)`
+- `version_code varchar(30) not null` (ej: `INGSIS-2025`)
+- `display_name varchar(120) not null`
+- `effective_from date not null`
+- `effective_to date null`
+- `is_active boolean not null default true`
+- `created_at timestamptz not null`
+
+### `student_curriculum_assignments`
+- `id uuid pk`
+- `student_id uuid fk students(id)`
+- `curriculum_version_id uuid fk curriculum_versions(id)`
+- `assigned_at timestamptz not null`
+- `is_active boolean not null default true`
+
+### `course_equivalences`
+- `id uuid pk`
+- `source_course_id uuid fk courses(id)`
+- `target_course_id uuid fk courses(id)`
+- `equivalence_type varchar(20) not null` (`Total`, `Parcial`)
+- `effective_from date not null`
+- `effective_to date null`
+- `is_active boolean not null default true`
+- `notes varchar(255) null`
 
 ### `enrollments`
 - `id uuid pk`
@@ -577,7 +692,6 @@ Relaciones clave:
 - `id uuid pk`
 - `student_id uuid fk students(id)`
 - `request_type varchar(40) not null` (`Certificacion de cursos`, `Cierre de pensum`)
-- `status varchar(20) not null` (`Solicitado`, `En proceso`, `Generado`)
 - `requested_at timestamptz not null`
 - `issued_at timestamptz null`
 - `download_url varchar(512) null`
@@ -592,15 +706,22 @@ Relaciones clave:
 ## 10.2 Constraints e indices minimos
 
 - `unique(student_id, course_offering_id)` en `enrollments`.
+- `unique(career_id, version_code)` en `curriculum_versions`.
+- `unique(student_id) filter (is_active = true)` en `student_curriculum_assignments`.
+- `check(source_course_id <> target_course_id)` en `course_equivalences`.
 - `check (draft_grade between 0 and 100)` y `check (published_grade between 0 and 100)`.
 - `check (seats_taken >= 0 and seats_taken <= seats_total)`.
 - Indices sugeridos:
   - `course_offerings(status)`
   - `course_offerings(career_id, status)`
+  - `curriculum_versions(career_id, is_active)`
+  - `student_curriculum_assignments(student_id, is_active)`
+  - `curriculum_courses(curriculum_version_id)`
+  - `course_equivalences(source_course_id, target_course_id, is_active)`
   - `enrollments(student_id)`
   - `enrollments(course_offering_id)`
   - `grade_entries(course_offering_id)`
-  - `report_requests(status, requested_at)`
+  - `report_requests(requested_at)`
   - `students(career_id)`
 
 ---
@@ -647,10 +768,22 @@ Relaciones clave:
 - `activeCourses: StudentActiveCourseDto[]`
 - `historyPreview: AcademicRecordRowDto[]`
 
+### `StudentCurriculumProgressDto`
+- `curriculumVersionId`
+- `curriculumVersionCode`
+- `totalRequired`
+- `approved`
+- `pending`
+- `approvedCourseIds: string[]`
+- `pendingCourseIds: string[]`
+- `resolvedByEquivalences: string[]`
+
 ### `StudentAvailableCourseDto`
 - `courseOfferingId`
-- `code`
+- `offeringCode`
+- `baseCourseCode`
 - `courseName`
+- `term`
 - `careerName`
 - `section`
 - `professorName`
@@ -660,8 +793,10 @@ Relaciones clave:
 
 ### `StudentActiveCourseDto`
 - `courseOfferingId`
-- `code`
+- `offeringCode`
+- `baseCourseCode`
 - `courseName`
+- `term`
 - `careerName`
 - `section`
 - `professorName`
@@ -687,10 +822,12 @@ Relaciones clave:
 - `classes: ProfessorClassDto[]`
 
 ### `ProfessorClassDto`
-- `classId`
+- `classId` (alias de `courseOfferingId` para continuidad)
 - `courseOfferingId`
-- `code`
+- `offeringCode`
+- `baseCourseCode`
 - `title`
+- `term`
 - `status`
 - `gradesPublished`
 - `studentsCount`
@@ -740,9 +877,11 @@ Relaciones clave:
 
 ### `DirectorCourseDto`
 - `courseOfferingId`
-- `code`
+- `offeringCode`
+- `baseCourseCode`
 - `courseName`
 - `careerName`
+- `term`
 - `section`
 - `professorName`
 - `seatsTaken`
@@ -750,19 +889,39 @@ Relaciones clave:
 - `status`
 
 ### `CreateDirectorCourseRequestDto`
-- `code`
-- `courseName`
+- `baseCourseId`
 - `careerId`
 - `section`
-- `department`
+- `term`
 - `professorId?`
 - `capacity`
+- `offeringCode?`
 
 ### `PublishCourseResultDto`
 - `courseOfferingId`
 - `previousStatus`
 - `currentStatus`
 - `publishedAt`
+
+### `ActivateCourseResultDto`
+- `courseOfferingId`
+- `previousStatus`
+- `currentStatus`
+- `activatedAt`
+
+### `CloseCourseResultDto`
+- `courseOfferingId`
+- `previousStatus`
+- `currentStatus`
+- `closedAt`
+
+### `AssignProfessorRequestDto`
+- `professorId`
+
+### `AssignProfessorResultDto`
+- `courseOfferingId`
+- `professorId`
+- `assignedAt`
 
 ### `DirectorProfessorDto`
 - `professorId`
@@ -783,7 +942,6 @@ Relaciones clave:
 - `studentName`
 - `requestType`
 - `requestedAt`
-- `status`
 - `issuedAt?`
 - `downloadUrl?`
 
@@ -792,6 +950,33 @@ Relaciones clave:
 - `name`
 - `speciality`
 - `status`
+
+### `CurriculumVersionDto`
+- `curriculumVersionId`
+- `careerId`
+- `careerName`
+- `versionCode`
+- `displayName`
+- `effectiveFrom`
+- `effectiveTo?`
+- `isActive`
+
+### `StudentCurriculumAssignmentDto`
+- `studentId`
+- `curriculumVersionId`
+- `assignedAt`
+- `isActive`
+
+### `CourseEquivalenceDto`
+- `equivalenceId`
+- `sourceCourseId`
+- `sourceCourseCode`
+- `targetCourseId`
+- `targetCourseCode`
+- `equivalenceType`
+- `effectiveFrom`
+- `effectiveTo?`
+- `isActive`
 
 ---
 
@@ -814,14 +999,22 @@ Codigos funcionales sugeridos:
 - `FORBIDDEN_ROLE`
 - `STUDENT_PROFILE_NOT_FOUND`
 - `STUDENT_WITHOUT_CAREER`
+- `CURRICULUM_VERSION_NOT_ASSIGNED`
+- `CURRICULUM_VERSION_NOT_FOUND`
+- `CURRICULUM_VERSION_ALREADY_EXISTS`
+- `CURRICULUM_ASSIGNMENT_CONFLICT`
 - `CAREER_NOT_FOUND`
 - `STUDENT_ALREADY_HAS_CAREER`
 - `COURSE_NOT_FOUND`
-- `COURSE_NOT_PUBLISHED`
-- `COURSE_CAPACITY_EXHAUSTED`
-- `COURSE_ALREADY_PUBLISHED`
-- `COURSE_ALREADY_ACTIVE`
-- `COURSE_ALREADY_CLOSED`
+- `COURSE_OFFERING_NOT_FOUND`
+- `COURSE_EQUIVALENCE_INVALID`
+- `COURSE_EQUIVALENCE_DUPLICATE`
+- `COURSE_OFFERING_CODE_ALREADY_EXISTS`
+- `COURSE_OFFERING_NOT_PUBLISHED`
+- `COURSE_OFFERING_CAPACITY_EXHAUSTED`
+- `COURSE_OFFERING_ALREADY_PUBLISHED`
+- `COURSE_OFFERING_ALREADY_ACTIVE`
+- `COURSE_OFFERING_ALREADY_CLOSED`
 - `ENROLLMENT_ALREADY_EXISTS`
 - `CAREER_MISMATCH`
 - `GRADE_OUT_OF_RANGE`
@@ -846,7 +1039,7 @@ Reglas comunes para listados:
 
 Filtros esperados por modulo:
 - Cursos director: `status`, `careerId`.
-- Solicitudes director: `status`, `type`.
+- Solicitudes director: `type`.
 - Cursos estudiante disponibles/activos: `search`.
 - Clases profesor: `status` (opcional futuro).
 
@@ -930,7 +1123,7 @@ Para ambientes:
 3. Cursos + course offerings + curriculum.
 4. Endpoints estudiante (profile/dashboard/available/enroll/active/record).
 5. Endpoints profesor (classes/students/grades draft/publish/close).
-6. Endpoints director (dashboard/courses/create/publish/professors/students/report-requests).
+6. Endpoints director (dashboard/courses/create/publish/activate/close/assign-professor/professors/students/report-requests).
 7. Endurecimiento de validaciones y codigos de error.
 8. Integracion frontend por modulo con feature flags.
 
@@ -948,3 +1141,20 @@ Para ambientes:
 - [ ] Frontend reemplaza datos mock por API sin romper flujos por rol.
 - [ ] No existen contradicciones entre el contrato y el comportamiento real de UI.
 
+---
+
+## 17. Ejemplo narrativo de cursos por periodo
+
+Escenario:
+- Existe el curso base `MAT-102` (Matematicas II) en catalogo (`courses`).
+- En 2025-2 se crea una oferta `MAT-102` seccion A con profesor X.
+- En 2026-1 se crea otra oferta `MAT-102` seccion B con profesor Y.
+
+Comportamiento esperado:
+- El estudiante se inscribe y aprueba la oferta de 2025-2.
+- En su progreso de pensum, `MAT-102` queda como aprobado.
+- Cuando llega 2026-1, la nueva oferta puede existir para otros estudiantes, pero ese estudiante ya no la ve como pendiente.
+
+Caso con cambio de codigo:
+- Si `MAT-102` pasa a `MAT-202`, se registra una equivalencia activa en `course_equivalences`.
+- El sistema reconoce el aprobado historico y mantiene el curso como cumplido en el pensum.

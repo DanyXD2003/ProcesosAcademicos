@@ -1,16 +1,17 @@
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
 export default function DirectorProfessorsPage() {
-  const { page, totalPages, setPage } = usePaginationQuery(directorDashboardMock.professorsRegistry.length, PAGE_SIZE);
+  const { directorProfile, directorProfessors } = useAcademicDemo();
+  const { page, totalPages, setPage } = usePaginationQuery(directorProfessors.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
-  const professors = directorDashboardMock.professorsRegistry.slice(start, start + PAGE_SIZE);
+  const professors = directorProfessors.slice(start, start + PAGE_SIZE);
 
   return (
     <DashboardLayout
@@ -25,7 +26,7 @@ export default function DirectorProfessorsPage() {
         </>
       }
       navItems={getDirectorSidebarItems()}
-      profile={directorDashboardMock.profile}
+      profile={directorProfile}
       roleLabel="Director"
       searchPlaceholder="Buscar profesor"
       subtitle="Gestion de planta docente"

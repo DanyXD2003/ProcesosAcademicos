@@ -1,43 +1,22 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { directorDashboardMock } from "../mocks/director.mock";
-import { professorDashboardMock } from "../mocks/professor.mock";
-import { studentDashboardMock } from "../mocks/student.mock";
-
-const PASSING_GRADE = 61;
+import {
+  academicDomainMock,
+  CURRENT_PROFESSOR_ID,
+  CURRENT_STUDENT_ID,
+  CURRENT_TERM,
+  PASSING_GRADE
+} from "../mocks/academic-domain.mock";
 
 const AcademicDemoContext = createContext(undefined);
 
-function getInitialCourses() {
-  return directorDashboardMock.coursesCatalog.map((course) => ({ ...course }));
+function cloneItems(items) {
+  return items.map((item) => ({ ...item }));
 }
 
-function getInitialActiveCodes() {
-  return [...studentDashboardMock.myCourses.activeCourseCodes];
-}
-
-function getInitialProfessorClasses() {
-  return professorDashboardMock.classes.map((course) => ({ ...course }));
-}
-
-function getInitialClassGrades() {
+function cloneNestedMap(record) {
   return Object.fromEntries(
-    Object.entries(professorDashboardMock.initialGrades).map(([classId, grades]) => [classId, { ...grades }])
+    Object.entries(record).map(([key, value]) => [key, { ...value }])
   );
-}
-
-function getInitialReportRequests() {
-  return directorDashboardMock.reportRequests.map((request) => ({ ...request }));
-}
-
-function parseSeats(value) {
-  const [usedRaw = "0", capacityRaw = "0"] = `${value}`.split("/");
-  const used = Number(usedRaw);
-  const capacity = Number(capacityRaw);
-
-  return {
-    used: Number.isFinite(used) ? used : 0,
-    capacity: Number.isFinite(capacity) ? capacity : 0
-  };
 }
 
 function formatDate(dateValue) {
@@ -48,88 +27,347 @@ function formatDate(dateValue) {
   return `${year}-${month}-${day}`;
 }
 
-function getNextRequestId(requests) {
-  const maxId = requests.reduce((highest, item) => {
+function average(values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return "-";
+  }
+
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return (total / values.length).toFixed(1);
+}
+
+function nextRequestId(requests) {
+  const max = requests.reduce((highest, item) => {
     const numeric = Number(`${item.id}`.replace(/\D/g, ""));
     if (!Number.isFinite(numeric)) {
       return highest;
     }
-
     return Math.max(highest, numeric);
   }, 0);
 
-  return `SOL-${String(maxId + 1).padStart(3, "0")}`;
+  return `SOL-${String(max + 1).padStart(3, "0")}`;
+}
+
+function randomId(prefix) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+}
+
+function buildReportDownloadName(requestType, requestId) {
+  const normalized = requestType === "Cierre de pensum" ? "cierre-pensum" : "certificacion-cursos";
+  return `${normalized}-${requestId.toLowerCase()}.txt`;
+}
+
+function downloadGeneratedReport(request) {
+  if (typeof window === "undefined" || !request?.downloadName) {
+    return;
+  }
+
+  const content = [
+    "Procesos Academicos - Documento generado",
+    `Solicitud: ${request.id}`,
+    `Estudiante: ${request.studentName}`,
+    `Tipo: ${request.requestType}`,
+    `Fecha emision: ${request.issuedAt}`
+  ].join("\n");
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = request.downloadName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildEquivalenceGraph(equivalences) {
+  const graph = new Map();
+
+  equivalences
+    .filter((item) => item.active)
+    .forEach((item) => {
+      if (!graph.has(item.sourceCourseId)) {
+        graph.set(item.sourceCourseId, new Set());
+      }
+      if (!graph.has(item.targetCourseId)) {
+        graph.set(item.targetCourseId, new Set());
+      }
+      graph.get(item.sourceCourseId).add(item.targetCourseId);
+      graph.get(item.targetCourseId).add(item.sourceCourseId);
+    });
+
+  return graph;
+}
+
+function collectEquivalentCourseIds(courseId, graph) {
+  const visited = new Set([courseId]);
+  const queue = [courseId];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const neighbors = graph.get(current) ?? new Set();
+
+    neighbors.forEach((neighbor) => {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    });
+  }
+
+  return visited;
+}
+
+function nextOfferingCode(term, offerings) {
+  const year = `${term}`.split("-")[0] || "2026";
+  const regex = new RegExp(`^CL-${year}-(\\d{3})$`);
+  const max = offerings.reduce((highest, offering) => {
+    const match = `${offering.offeringCode}`.match(regex);
+    if (!match) {
+      return highest;
+    }
+    const value = Number(match[1]);
+    if (!Number.isFinite(value)) {
+      return highest;
+    }
+    return Math.max(highest, value);
+  }, 0);
+
+  return `CL-${year}-${String(max + 1).padStart(3, "0")}`;
+}
+
+function statusTone(status) {
+  if (status === "Activo") {
+    return "Activo";
+  }
+
+  if (status === "Publicado") {
+    return "Publicado";
+  }
+
+  if (status === "Borrador") {
+    return "Borrador";
+  }
+
+  return "Cerrado";
 }
 
 export function AcademicDemoProvider({ children }) {
-  const [coursesCatalog, setCoursesCatalog] = useState(getInitialCourses);
-  const [activeCourseCodes, setActiveCourseCodes] = useState(getInitialActiveCodes);
-  const [studentCareer, setStudentCareer] = useState(studentDashboardMock.profileDetails.career ?? "");
-  const [professorClasses, setProfessorClasses] = useState(getInitialProfessorClasses);
-  const [classGrades, setClassGrades] = useState(getInitialClassGrades);
-  const [reportRequests, setReportRequests] = useState(getInitialReportRequests);
+  const [students, setStudents] = useState(() => cloneItems(academicDomainMock.students));
+  const [courseOfferings, setCourseOfferings] = useState(() => cloneItems(academicDomainMock.courseOfferings));
+  const [enrollments, setEnrollments] = useState(() => cloneItems(academicDomainMock.enrollments));
+  const [studentCurriculumAssignments, setStudentCurriculumAssignments] = useState(() => cloneItems(academicDomainMock.studentCurriculumAssignments));
+  const [gradeDrafts, setGradeDrafts] = useState(() => cloneNestedMap(academicDomainMock.gradeDrafts));
+  const [gradePublications, setGradePublications] = useState(() => cloneNestedMap(academicDomainMock.gradePublications));
+  const [academicRecords, setAcademicRecords] = useState(() => cloneItems(academicDomainMock.academicRecords));
+  const [reportRequests, setReportRequests] = useState(() => cloneItems(academicDomainMock.reportRequests));
 
-  const curriculumByCareer = studentDashboardMock.curriculumByCareer;
-  const studentHistory = studentDashboardMock.history;
+  const careers = academicDomainMock.careers;
+  const baseCourses = academicDomainMock.baseCourses;
+  const curriculumVersions = academicDomainMock.curriculumVersions;
+  const curriculumCourses = academicDomainMock.curriculumCourses;
+  const courseEquivalences = academicDomainMock.courseEquivalences;
+  const professors = academicDomainMock.professors;
+  const uiProfiles = academicDomainMock.uiProfiles;
 
-  const careersCatalog = useMemo(() => Object.keys(curriculumByCareer).sort((left, right) => left.localeCompare(right)), [curriculumByCareer]);
+  const careerById = useMemo(() => new Map(careers.map((career) => [career.id, career])), [careers]);
+  const courseById = useMemo(() => new Map(baseCourses.map((course) => [course.id, course])), [baseCourses]);
+  const professorById = useMemo(() => new Map(professors.map((professor) => [professor.id, professor])), [professors]);
+  const studentById = useMemo(() => new Map(students.map((student) => [student.id, student])), [students]);
+
+  const equivalenceGraph = useMemo(() => buildEquivalenceGraph(courseEquivalences), [courseEquivalences]);
+
+  const currentStudent = useMemo(
+    () => students.find((student) => student.id === CURRENT_STUDENT_ID) ?? null,
+    [students]
+  );
+
+  const studentCareerId = currentStudent?.careerId ?? "";
+  const studentCareer = studentCareerId ? careerById.get(studentCareerId)?.name ?? "" : "";
+
+  const activeCurriculumAssignment = useMemo(
+    () => studentCurriculumAssignments.find((item) => item.studentId === CURRENT_STUDENT_ID && item.isActive) ?? null,
+    [studentCurriculumAssignments]
+  );
+
+  const fallbackCurriculumVersion = useMemo(() => {
+    if (!studentCareerId) {
+      return null;
+    }
+
+    const versions = curriculumVersions
+      .filter((item) => item.careerId === studentCareerId)
+      .sort((left, right) => right.cohortYear - left.cohortYear);
+
+    return versions[0] ?? null;
+  }, [curriculumVersions, studentCareerId]);
+
+  const activeCurriculumVersion = useMemo(() => {
+    if (activeCurriculumAssignment) {
+      return curriculumVersions.find((version) => version.id === activeCurriculumAssignment.curriculumVersionId) ?? null;
+    }
+
+    return fallbackCurriculumVersion;
+  }, [activeCurriculumAssignment, curriculumVersions, fallbackCurriculumVersion]);
 
   const studentCurriculum = useMemo(() => {
-    if (!studentCareer) {
+    if (!activeCurriculumVersion) {
       return [];
     }
 
-    return curriculumByCareer[studentCareer] ?? [];
-  }, [curriculumByCareer, studentCareer]);
+    return curriculumCourses
+      .filter((item) => item.curriculumVersionId === activeCurriculumVersion.id)
+      .map((item) => {
+        const course = courseById.get(item.courseId);
 
-  const approvedHistoryCodes = useMemo(() => {
-    const topGradeByCode = new Map();
+        return {
+          courseId: item.courseId,
+          code: course?.code ?? "",
+          subject: course?.name ?? "Curso sin definir",
+          termNumber: item.termNumber
+        };
+      })
+      .sort((left, right) => {
+        if (left.termNumber !== right.termNumber) {
+          return left.termNumber - right.termNumber;
+        }
+        return left.code.localeCompare(right.code);
+      });
+  }, [activeCurriculumVersion, courseById, curriculumCourses]);
 
-    studentHistory.forEach((row) => {
-      const previous = topGradeByCode.get(row.code) ?? -1;
-      if (row.grade > previous) {
-        topGradeByCode.set(row.code, row.grade);
-      }
+  const approvedBaseCourseIds = useMemo(() => {
+    const directApproved = new Set(
+      academicRecords
+        .filter((row) => row.studentId === CURRENT_STUDENT_ID && row.grade >= PASSING_GRADE)
+        .map((row) => row.courseId)
+    );
+
+    const expanded = new Set();
+
+    directApproved.forEach((courseId) => {
+      const equivalents = collectEquivalentCourseIds(courseId, equivalenceGraph);
+      equivalents.forEach((item) => expanded.add(item));
     });
 
-    return new Set(
-      Array.from(topGradeByCode.entries())
-        .filter(([, grade]) => grade >= PASSING_GRADE)
-        .map(([code]) => code)
-    );
-  }, [studentHistory]);
+    return expanded;
+  }, [academicRecords, equivalenceGraph]);
 
-  const approvedCurriculumCount = useMemo(
-    () => studentCurriculum.filter((course) => approvedHistoryCodes.has(course.code)).length,
-    [approvedHistoryCodes, studentCurriculum]
+  const pendingCurriculumCourses = useMemo(
+    () => studentCurriculum.filter((course) => !approvedBaseCourseIds.has(course.courseId)),
+    [approvedBaseCourseIds, studentCurriculum]
   );
 
-  const pendingCurriculumCount = useMemo(
-    () => Math.max(studentCurriculum.length - approvedCurriculumCount, 0),
-    [approvedCurriculumCount, studentCurriculum.length]
+  const approvedCurriculumCount = studentCurriculum.length - pendingCurriculumCourses.length;
+  const pendingCurriculumCount = pendingCurriculumCourses.length;
+
+  const careersCatalog = useMemo(
+    () => careers.map((career) => career.name).sort((left, right) => left.localeCompare(right)),
+    [careers]
   );
 
-  const publishedCourses = useMemo(
-    () => coursesCatalog.filter((course) => course.publicationStatus === "Publicado"),
-    [coursesCatalog]
+  const careersOptions = useMemo(
+    () => careers.map((career) => ({ id: career.id, name: career.name })),
+    [careers]
   );
 
-  const studentActiveCourses = useMemo(
-    () => coursesCatalog.filter((course) => activeCourseCodes.includes(course.code)),
-    [activeCourseCodes, coursesCatalog]
+  function buildOfferingView(offering) {
+    const course = courseById.get(offering.courseId);
+    const career = careerById.get(offering.careerId);
+    const professor = offering.professorId ? professorById.get(offering.professorId) : null;
+
+    return {
+      id: offering.id,
+      offeringId: offering.id,
+      offeringCode: offering.offeringCode,
+      code: course?.code ?? "",
+      baseCourseCode: course?.code ?? "",
+      course: course?.name ?? "Curso sin definir",
+      courseId: offering.courseId,
+      careerId: offering.careerId,
+      career: career?.name ?? "Sin carrera",
+      section: offering.section,
+      term: offering.term,
+      seatsTaken: offering.seatsTaken,
+      seatsTotal: offering.seatsTotal,
+      seats: `${offering.seatsTaken}/${offering.seatsTotal}`,
+      professorId: offering.professorId,
+      professor: professor?.fullName ?? "Sin asignar",
+      publicationStatus: statusTone(offering.status),
+      status: statusTone(offering.status)
+    };
+  }
+
+  const courseOfferingsById = useMemo(() => new Map(courseOfferings.map((offering) => [offering.id, offering])), [courseOfferings]);
+
+  const studentActiveEnrollmentRows = useMemo(
+    () => enrollments.filter((item) => item.studentId === CURRENT_STUDENT_ID && item.status === "Activa"),
+    [enrollments]
   );
 
-  const availableCoursesForEnrollment = useMemo(() => {
-    if (!studentCareer) {
+  const studentActiveOfferingIds = useMemo(
+    () => new Set(studentActiveEnrollmentRows.map((item) => item.offeringId)),
+    [studentActiveEnrollmentRows]
+  );
+
+  const studentActiveOfferings = useMemo(
+    () =>
+      courseOfferings
+        .filter((offering) => studentActiveOfferingIds.has(offering.id) && offering.status !== "Cerrado")
+        .map((offering) => buildOfferingView(offering)),
+    [courseOfferings, studentActiveOfferingIds]
+  );
+
+  const availableOfferingsForEnrollment = useMemo(() => {
+    if (!studentCareerId || !activeCurriculumVersion) {
       return [];
     }
 
-    const curriculumCodes = new Set(studentCurriculum.map((course) => course.code));
-
-    return publishedCourses.filter(
-      (course) => course.career === studentCareer && curriculumCodes.has(course.code) && !activeCourseCodes.includes(course.code)
+    const requiredCourseIds = new Set(studentCurriculum.map((item) => item.courseId));
+    const activeCourseIds = new Set(
+      studentActiveEnrollmentRows
+        .map((item) => courseOfferingsById.get(item.offeringId))
+        .filter(Boolean)
+        .map((offering) => offering.courseId)
     );
-  }, [activeCourseCodes, publishedCourses, studentCareer, studentCurriculum]);
+
+    return courseOfferings
+      .filter((offering) => offering.status === "Publicado")
+      .filter((offering) => offering.term === CURRENT_TERM)
+      .filter((offering) => offering.careerId === studentCareerId)
+      .filter((offering) => requiredCourseIds.has(offering.courseId))
+      .filter((offering) => !approvedBaseCourseIds.has(offering.courseId))
+      .filter((offering) => !activeCourseIds.has(offering.courseId))
+      .filter((offering) => offering.seatsTaken < offering.seatsTotal)
+      .map((offering) => buildOfferingView(offering))
+      .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode));
+  }, [
+    activeCurriculumVersion,
+    approvedBaseCourseIds,
+    courseOfferings,
+    courseOfferingsById,
+    studentActiveEnrollmentRows,
+    studentCareerId,
+    studentCurriculum
+  ]);
+
+  const studentHistory = useMemo(
+    () =>
+      academicRecords
+        .filter((row) => row.studentId === CURRENT_STUDENT_ID)
+        .map((row) => {
+          const course = courseById.get(row.courseId);
+          return {
+            id: row.id,
+            code: course?.code ?? "",
+            subject: course?.name ?? "Curso sin definir",
+            period: row.term,
+            credits: course?.credits ?? 0,
+            grade: row.grade,
+            status: row.grade >= PASSING_GRADE ? "Aprobado" : "Reprobado"
+          };
+        })
+        .sort((left, right) => right.period.localeCompare(left.period)),
+    [academicRecords, courseById]
+  );
 
   const studentAverageGrade = useMemo(() => {
     if (studentHistory.length === 0) {
@@ -140,18 +378,65 @@ export function AcademicDemoProvider({ children }) {
     return (total / studentHistory.length).toFixed(1);
   }, [studentHistory]);
 
-  const professorStats = useMemo(() => {
-    const activeCount = professorClasses.filter((course) => course.status !== "Cerrado").length;
+  const professorClasses = useMemo(
+    () =>
+      courseOfferings
+        .filter((offering) => offering.professorId === CURRENT_PROFESSOR_ID)
+        .map((offering) => {
+          const classStudents = enrollments.filter((item) => item.offeringId === offering.id);
+          const course = courseById.get(offering.courseId);
 
-    const pendingGradeEntries = professorClasses.reduce((count, course) => {
-      if (course.gradesPublished || course.status === "Cerrado") {
+          return {
+            id: offering.id,
+            offeringCode: offering.offeringCode,
+            code: course?.code ?? "",
+            title: course?.name ?? "Curso sin definir",
+            section: offering.section,
+            term: offering.term,
+            status: offering.status,
+            students: classStudents.length,
+            gradesPublished: Boolean(gradePublications[offering.id])
+          };
+        })
+        .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode)),
+    [courseById, courseOfferings, enrollments, gradePublications]
+  );
+
+  const professorClassStudents = useMemo(() => {
+    const byClass = {};
+
+    professorClasses.forEach((classItem) => {
+      const rows = enrollments.filter((item) => item.offeringId === classItem.id);
+
+      byClass[classItem.id] = rows
+        .map((row) => {
+          const student = studentById.get(row.studentId);
+          const career = student?.careerId ? careerById.get(student.careerId) : null;
+
+          return {
+            id: row.studentId,
+            studentCode: student?.code ?? row.studentId,
+            name: student?.fullName ?? "Estudiante sin nombre",
+            career: career?.name ?? "Sin carrera"
+          };
+        })
+        .sort((left, right) => left.name.localeCompare(right.name));
+    });
+
+    return byClass;
+  }, [careerById, enrollments, professorClasses, studentById]);
+
+  const professorStats = useMemo(() => {
+    const activeCourses = professorClasses.filter((item) => item.status !== "Cerrado").length;
+
+    const pendingGrades = professorClasses.reduce((count, classItem) => {
+      if (classItem.gradesPublished || classItem.status === "Cerrado") {
         return count;
       }
 
-      const students = professorDashboardMock.classStudents[course.id] ?? [];
-      const grades = classGrades[course.id] ?? {};
-
-      const missing = students.filter((student) => {
+      const studentsInClass = professorClassStudents[classItem.id] ?? [];
+      const grades = gradeDrafts[classItem.id] ?? {};
+      const missing = studentsInClass.filter((student) => {
         const grade = grades[student.id];
         return !Number.isFinite(grade) || grade <= 0;
       }).length;
@@ -159,138 +444,304 @@ export function AcademicDemoProvider({ children }) {
       return count + missing;
     }, 0);
 
-    const uniqueStudents = new Set();
-    Object.values(professorDashboardMock.classStudents).forEach((list) => {
-      list.forEach((student) => uniqueStudents.add(student.id));
+    const studentsSet = new Set();
+    Object.values(professorClassStudents).forEach((list) => {
+      list.forEach((student) => studentsSet.add(student.id));
     });
 
     return {
-      activeCourses: activeCount,
-      pendingGrades: pendingGradeEntries,
-      students: uniqueStudents.size
+      activeCourses,
+      pendingGrades,
+      students: studentsSet.size
     };
-  }, [classGrades, professorClasses]);
+  }, [gradeDrafts, professorClassStudents, professorClasses]);
 
   const professorStudentsSummary = useMemo(() => {
-    const studentsMap = new Map();
+    const grouped = new Map();
 
-    Object.entries(professorDashboardMock.classStudents).forEach(([classId, students]) => {
-      students.forEach((student) => {
-        if (!studentsMap.has(student.id)) {
-          studentsMap.set(student.id, {
-            id: student.id,
+    Object.entries(professorClassStudents).forEach(([offeringId, classStudents]) => {
+      classStudents.forEach((student) => {
+        if (!grouped.has(student.id)) {
+          grouped.set(student.id, {
+            id: student.studentCode,
             name: student.name,
             career: student.career,
             approvedGrades: []
           });
         }
 
-        const grade = classGrades[classId]?.[student.id];
+        const grade = gradeDrafts[offeringId]?.[student.id];
         if (Number.isFinite(grade) && grade >= PASSING_GRADE) {
-          studentsMap.get(student.id).approvedGrades.push(grade);
+          grouped.get(student.id).approvedGrades.push(grade);
         }
       });
     });
 
-    return Array.from(studentsMap.values())
-      .map((student) => {
-        if (student.approvedGrades.length === 0) {
-          return {
-            id: student.id,
-            name: student.name,
-            career: student.career,
-            approvedAverage: "Sin notas aprobadas"
-          };
-        }
-
-        const total = student.approvedGrades.reduce((sum, grade) => sum + grade, 0);
-        return {
-          id: student.id,
-          name: student.name,
-          career: student.career,
-          approvedAverage: (total / student.approvedGrades.length).toFixed(1)
-        };
-      })
+    return Array.from(grouped.values())
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        career: item.career,
+        approvedAverage:
+          item.approvedGrades.length > 0 ? average(item.approvedGrades) : "Sin notas aprobadas"
+      }))
       .sort((left, right) => left.name.localeCompare(right.name));
-  }, [classGrades]);
+  }, [gradeDrafts, professorClassStudents]);
+
+  const directorCourses = useMemo(
+    () =>
+      courseOfferings
+        .map((offering) => buildOfferingView(offering))
+        .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode)),
+    [courseOfferings]
+  );
 
   const directorStats = useMemo(() => {
-    const activeClasses = coursesCatalog.filter((course) => course.publicationStatus === "Activo").length;
-    const pendingClasses = coursesCatalog.filter((course) => course.publicationStatus === "Publicado").length;
+    const activeClasses = courseOfferings.filter((offering) => offering.status === "Activo").length;
+    const pendingClasses = courseOfferings.filter((offering) => offering.status === "Publicado").length;
 
     return {
-      totalStudents: directorDashboardMock.studentsRegistry.length,
-      totalProfessors: directorDashboardMock.professorsRegistry.length,
+      totalStudents: students.length,
+      totalProfessors: professors.length,
       activeClasses,
       pendingClasses
     };
-  }, [coursesCatalog]);
+  }, [courseOfferings, professors.length, students.length]);
 
   const directorCapacity = useMemo(() => {
-    const activeStudents = coursesCatalog
-      .filter((course) => course.publicationStatus === "Activo")
-      .reduce((sum, course) => sum + parseSeats(course.seats).used, 0);
+    const activeOfferingIds = new Set(
+      courseOfferings.filter((offering) => offering.status === "Activo").map((offering) => offering.id)
+    );
 
-    const pendingCapacity = coursesCatalog
-      .filter((course) => course.publicationStatus === "Publicado")
-      .reduce((sum, course) => sum + parseSeats(course.seats).capacity, 0);
+    const activeStudents = enrollments.filter(
+      (enrollment) => enrollment.status === "Activa" && activeOfferingIds.has(enrollment.offeringId)
+    ).length;
+
+    const pendingCapacity = courseOfferings
+      .filter((offering) => offering.status === "Publicado")
+      .reduce((sum, offering) => sum + offering.seatsTotal, 0);
 
     return {
       activeStudents,
       pendingCapacity,
       totalCapacity: activeStudents + pendingCapacity
     };
-  }, [coursesCatalog]);
+  }, [courseOfferings, enrollments]);
 
-  const studentProfileDetails = useMemo(
-    () => ({
-      ...studentDashboardMock.profileDetails,
-      career: studentCareer,
-      program: studentCareer || "Sin carrera asignada"
-    }),
-    [studentCareer]
-  );
+  const directorProfessors = useMemo(() => {
+    return professors
+      .map((professor) => {
+        const load = courseOfferings.filter(
+          (offering) =>
+            offering.professorId === professor.id &&
+            offering.term === CURRENT_TERM &&
+            offering.status !== "Cerrado"
+        ).length;
 
-  function enrollCareer(careerId) {
-    if (!careersCatalog.includes(careerId)) {
-      return;
-    }
+        return {
+          professorId: professor.id,
+          id: professor.code,
+          name: professor.fullName,
+          department: professor.department,
+          load
+        };
+      })
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [courseOfferings, professors]);
 
-    setStudentCareer((current) => (current ? current : careerId));
-  }
+  const directorStudents = useMemo(() => {
+    return students
+      .map((student) => {
+        const career = student.careerId ? careerById.get(student.careerId)?.name : "Sin carrera";
+        return {
+          id: student.code,
+          name: student.fullName,
+          program: career || "Sin carrera",
+          semester: student.semester ?? "-",
+          average: average(student.historicalGrades)
+        };
+      })
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [careerById, students]);
 
-  function publishCourse(courseCode) {
-    setCoursesCatalog((current) =>
-      current.map((course) => {
-        if (course.code !== courseCode) {
-          return course;
-        }
+  const teacherAvailability = useMemo(() => {
+    return academicDomainMock.teacherAvailabilitySnapshots.map((snapshot) => {
+      const professor = professorById.get(snapshot.professorId);
+      const initials = professor?.fullName
+        ?.split(" ")
+        .slice(0, 2)
+        .map((token) => token[0])
+        .join("")
+        .toUpperCase();
 
-        if (course.publicationStatus !== "Borrador") {
-          return course;
+      return {
+        initials: initials || "--",
+        name: professor?.fullName ?? "Profesor sin nombre",
+        speciality: professor?.speciality ?? "Sin especialidad",
+        status: snapshot.status
+      };
+    });
+  }, [professorById]);
+
+  const teachers = useMemo(() => {
+    return professors
+      .map((professor) => {
+        const load = directorProfessors.find((item) => item.professorId === professor.id)?.load ?? 0;
+        let status = "Disponible";
+        if (load >= 5) {
+          status = "Carga alta";
+        } else if (load >= 4) {
+          status = "Carga media";
         }
 
         return {
-          ...course,
-          publicationStatus: "Publicado"
+          id: professor.id,
+          name: professor.fullName,
+          speciality: professor.speciality,
+          status
         };
       })
-    );
-  }
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [directorProfessors, professors]);
 
-  function enrollStudentInCourse(courseCode) {
-    setActiveCourseCodes((current) => {
-      if (current.includes(courseCode)) {
+  const studentProfileDetails = useMemo(() => {
+    return {
+      fullName: currentStudent?.fullName ?? "Sin nombre",
+      studentId: currentStudent?.code ?? "",
+      program: studentCareer || "Sin carrera asignada",
+      career: studentCareer || "Sin carrera asignada",
+      faculty: currentStudent?.faculty ?? "Sin facultad",
+      semester: currentStudent?.semester ?? "-",
+      email: currentStudent?.email ?? "",
+      phone: currentStudent?.phone ?? ""
+    };
+  }, [currentStudent, studentCareer]);
+
+  function enrollCareer(careerId) {
+    if (!careerById.has(careerId)) {
+      return;
+    }
+
+    if (!currentStudent || currentStudent.careerId) {
+      return;
+    }
+
+    setStudents((current) =>
+      current.map((student) =>
+        student.id === CURRENT_STUDENT_ID
+          ? {
+              ...student,
+              careerId
+            }
+          : student
+      )
+    );
+
+    const selectedVersion = curriculumVersions
+      .filter((version) => version.careerId === careerId)
+      .sort((left, right) => right.cohortYear - left.cohortYear)[0];
+
+    if (!selectedVersion) {
+      return;
+    }
+
+    setStudentCurriculumAssignments((current) => {
+      const alreadyAssigned = current.some((item) => item.studentId === CURRENT_STUDENT_ID && item.isActive);
+      if (alreadyAssigned) {
         return current;
       }
 
-      return [...current, courseCode];
+      return [
+        ...current,
+        {
+          id: randomId("SCA"),
+          studentId: CURRENT_STUDENT_ID,
+          curriculumVersionId: selectedVersion.id,
+          assignedAt: formatDate(new Date()),
+          isActive: true
+        }
+      ];
     });
   }
 
-  function setDraftGrade(classId, studentId, gradeValue) {
-    const selectedClass = professorClasses.find((course) => course.id === classId);
-    if (!selectedClass || selectedClass.gradesPublished || selectedClass.status === "Cerrado") {
+  function enrollStudentInOffering(offeringId) {
+    if (!currentStudent || !currentStudent.careerId) {
+      return;
+    }
+
+    const selectedOffering = courseOfferings.find((offering) => offering.id === offeringId);
+    if (!selectedOffering) {
+      return;
+    }
+
+    if (selectedOffering.status !== "Publicado") {
+      return;
+    }
+
+    if (selectedOffering.term !== CURRENT_TERM) {
+      return;
+    }
+
+    if (selectedOffering.careerId !== currentStudent.careerId) {
+      return;
+    }
+
+    if (selectedOffering.seatsTaken >= selectedOffering.seatsTotal) {
+      return;
+    }
+
+    if (approvedBaseCourseIds.has(selectedOffering.courseId)) {
+      return;
+    }
+
+    const existingEnrollment = enrollments.find(
+      (item) => item.studentId === CURRENT_STUDENT_ID && item.offeringId === selectedOffering.id
+    );
+
+    if (existingEnrollment) {
+      return;
+    }
+
+    const sameBaseActive = enrollments.some((item) => {
+      if (item.studentId !== CURRENT_STUDENT_ID || item.status !== "Activa") {
+        return false;
+      }
+      const offering = courseOfferingsById.get(item.offeringId);
+      return offering?.courseId === selectedOffering.courseId;
+    });
+
+    if (sameBaseActive) {
+      return;
+    }
+
+    setEnrollments((current) => [
+      ...current,
+      {
+        id: randomId("ENR"),
+        studentId: CURRENT_STUDENT_ID,
+        offeringId,
+        status: "Activa",
+        enrolledAt: formatDate(new Date())
+      }
+    ]);
+
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId
+          ? {
+              ...offering,
+              seatsTaken: Math.min(offering.seatsTaken + 1, offering.seatsTotal)
+            }
+          : offering
+      )
+    );
+  }
+
+  function setDraftGrade(offeringId, studentId, gradeValue) {
+    const selectedOffering = courseOfferingsById.get(offeringId);
+    const alreadyPublished = Boolean(gradePublications[offeringId]);
+
+    if (!selectedOffering || selectedOffering.status === "Cerrado" || alreadyPublished) {
       return;
     }
 
@@ -301,153 +752,286 @@ export function AcademicDemoProvider({ children }) {
 
     const bounded = Math.max(0, Math.min(100, Math.round(parsed)));
 
-    setClassGrades((current) => ({
+    setGradeDrafts((current) => ({
       ...current,
-      [classId]: {
-        ...(current[classId] ?? {}),
+      [offeringId]: {
+        ...(current[offeringId] ?? {}),
         [studentId]: bounded
       }
     }));
   }
 
-  function publishClassGrades(classId) {
-    setProfessorClasses((current) =>
-      current.map((course) => {
-        if (course.id !== classId || course.status === "Cerrado") {
-          return course;
+  function publishClassGrades(offeringId) {
+    const selectedOffering = courseOfferingsById.get(offeringId);
+    if (!selectedOffering || selectedOffering.status === "Cerrado" || gradePublications[offeringId]) {
+      return;
+    }
+
+    const draft = gradeDrafts[offeringId] ?? {};
+
+    setGradePublications((current) => ({
+      ...current,
+      [offeringId]: {
+        publishedAt: formatDate(new Date()),
+        grades: { ...draft }
+      }
+    }));
+
+    setCourseOfferings((current) =>
+      current.map((offering) => {
+        if (offering.id !== offeringId) {
+          return offering;
         }
 
-        return {
-          ...course,
-          gradesPublished: true,
-          status: course.status === "Publicado" ? "Activo" : course.status
-        };
+        if (offering.status === "Publicado") {
+          return {
+            ...offering,
+            status: "Activo"
+          };
+        }
+
+        return offering;
       })
     );
   }
 
-  function closeClass(classId) {
-    const selectedClass = professorClasses.find((course) => course.id === classId);
-    if (!selectedClass || !selectedClass.gradesPublished || selectedClass.status === "Cerrado") {
+  function closeClass(offeringId) {
+    const selectedOffering = courseOfferingsById.get(offeringId);
+    const publication = gradePublications[offeringId];
+
+    if (!selectedOffering || selectedOffering.status === "Cerrado" || !publication) {
       return;
     }
 
-    setProfessorClasses((current) =>
-      current.map((course) =>
-        course.id === classId
+    const classEnrollments = enrollments.filter((item) => item.offeringId === offeringId);
+
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId
           ? {
-              ...course,
+              ...offering,
               status: "Cerrado"
             }
-          : course
+          : offering
       )
     );
 
-    setCoursesCatalog((current) =>
-      current.map((course) =>
-        course.code === selectedClass.code
+    setEnrollments((current) =>
+      current.map((item) =>
+        item.offeringId === offeringId
           ? {
-              ...course,
-              publicationStatus: "Cerrado"
+              ...item,
+              status: "Cerrada"
             }
-          : course
+          : item
       )
     );
+
+    setAcademicRecords((current) => {
+      const filtered = current.filter((record) => {
+        if (record.offeringId !== offeringId) {
+          return true;
+        }
+
+        return !classEnrollments.some((enrollment) => enrollment.studentId === record.studentId);
+      });
+
+      const consolidated = classEnrollments.map((enrollment) => {
+        const grade = publication.grades[enrollment.studentId];
+        return {
+          id: randomId("REC"),
+          studentId: enrollment.studentId,
+          courseId: selectedOffering.courseId,
+          offeringId,
+          term: selectedOffering.term,
+          grade: Number.isFinite(grade) ? grade : 0
+        };
+      });
+
+      return [...filtered, ...consolidated];
+    });
+  }
+
+  function publishOffering(offeringId) {
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId && offering.status === "Borrador"
+          ? {
+              ...offering,
+              status: "Publicado"
+            }
+          : offering
+      )
+    );
+  }
+
+  function activateOffering(offeringId) {
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId && offering.status === "Publicado"
+          ? {
+              ...offering,
+              status: "Activo"
+            }
+          : offering
+      )
+    );
+  }
+
+  function closeOffering(offeringId) {
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId
+          ? {
+              ...offering,
+              status: "Cerrado"
+            }
+          : offering
+      )
+    );
+  }
+
+  function assignProfessorToOffering(offeringId, professorId) {
+    const professorExists = professors.some((professor) => professor.id === professorId);
+    if (!professorExists) {
+      return;
+    }
+
+    setCourseOfferings((current) =>
+      current.map((offering) =>
+        offering.id === offeringId
+          ? {
+              ...offering,
+              professorId
+            }
+          : offering
+      )
+    );
+  }
+
+  function createDraftOffering(payload) {
+    const courseId = `${payload.baseCourseId ?? ""}`.trim();
+    const careerId = `${payload.careerId ?? ""}`.trim();
+    const section = `${payload.section ?? "A"}`.trim() || "A";
+    const term = `${payload.term ?? CURRENT_TERM}`.trim() || CURRENT_TERM;
+    const seatsTotal = Math.max(1, Number(payload.capacity) || 30);
+    const professorId = `${payload.professorId ?? ""}`.trim() || null;
+
+    if (!courseById.has(courseId) || !careerById.has(careerId)) {
+      return false;
+    }
+
+    const offeringCodeRaw = `${payload.offeringCode ?? ""}`.trim();
+    const offeringCode = offeringCodeRaw || nextOfferingCode(term, courseOfferings);
+
+    const duplicateCode = courseOfferings.some((offering) => offering.offeringCode === offeringCode);
+    if (duplicateCode) {
+      return false;
+    }
+
+    setCourseOfferings((current) => [
+      ...current,
+      {
+        id: randomId("OFF"),
+        offeringCode,
+        courseId,
+        careerId,
+        professorId,
+        section,
+        term,
+        status: "Borrador",
+        seatsTotal,
+        seatsTaken: 0
+      }
+    ]);
+
+    return true;
   }
 
   function createStudentRequest(type) {
     const requestType = type === "Cierre de pensum" ? "Cierre de pensum" : "Certificacion de cursos";
+    const requestId = nextRequestId(reportRequests);
+    const issuedAt = formatDate(new Date());
+    const createdRequest = {
+      id: requestId,
+      studentId: CURRENT_STUDENT_ID,
+      studentName: currentStudent?.fullName ?? "Estudiante",
+      requestType,
+      requestedAt: issuedAt,
+      issuedAt,
+      downloadName: buildReportDownloadName(requestType, requestId)
+    };
 
-    setReportRequests((current) => [
-      {
-        id: getNextRequestId(current),
-        studentName: studentDashboardMock.profile.name,
-        requestType,
-        requestedAt: formatDate(new Date()),
-        status: "Solicitado",
-        issuedAt: "",
-        downloadName: ""
-      },
-      ...current
-    ]);
+    setReportRequests((current) => [createdRequest, ...current]);
+    downloadGeneratedReport(createdRequest);
   }
 
-  function createDraftCourse(payload) {
-    const code = `${payload.code ?? ""}`.trim();
-    const courseName = `${payload.course ?? ""}`.trim();
-    const career = `${payload.career ?? ""}`.trim();
-    const section = `${payload.section ?? "A"}`.trim() || "A";
-    const professor = `${payload.professor ?? "Sin asignar"}`.trim() || "Sin asignar";
-    const department = `${payload.department ?? "General"}`.trim() || "General";
-    const capacity = Math.max(1, Number(payload.capacity) || 30);
+  const value = {
+    PASSING_GRADE,
+    currentTerm: CURRENT_TERM,
 
-    if (!code || !courseName || !career) {
-      return;
-    }
+    profile: uiProfiles.student,
+    professorProfile: uiProfiles.professor,
+    directorProfile: uiProfiles.director,
 
-    setCoursesCatalog((current) => {
-      const exists = current.some((course) => course.code === code);
-      if (exists) {
-        return current;
-      }
+    studentCareer,
+    studentCareerId,
+    studentProfileDetails,
+    studentCurriculum,
+    approvedBaseCourseIds: Array.from(approvedBaseCourseIds),
+    pendingCurriculumCourses,
+    approvedCurriculumCount,
+    pendingCurriculumCount,
+    studentActiveOfferings,
+    studentActiveCourses: studentActiveOfferings,
+    availableOfferingsForEnrollment,
+    availableCoursesForEnrollment: availableOfferingsForEnrollment,
+    studentHistory,
+    studentAverageGrade,
 
-      return [
-        ...current,
-        {
-          code,
-          course: courseName,
-          department,
-          career,
-          section,
-          seats: `0/${capacity}`,
-          professor,
-          publicationStatus: "Borrador"
-        }
-      ];
-    });
-  }
+    careersCatalog,
+    careersOptions,
+    enrollCareer,
+    enrollStudentInOffering,
+    enrollStudentInCourse: enrollStudentInOffering,
 
-  return (
-    <AcademicDemoContext.Provider
-      value={{
-        activeCourseCodes,
-        approvedCurriculumCount,
-        availableCoursesForEnrollment,
-        careersCatalog,
-        classGrades,
-        closeClass,
-        coursesCatalog,
-        createStudentRequest,
-        createDraftCourse,
-        directorCapacity,
-        directorStats,
-        enrollCareer,
-        enrollStudentInCourse,
-        PASSING_GRADE,
-        pendingCurriculumCount,
-        professorClasses,
-        professorClassStudents: professorDashboardMock.classStudents,
-        professorStats,
-        professorStudentsSummary,
-        profile: studentDashboardMock.profile,
-        publishClassGrades,
-        publishCourse,
-        publishedCourses,
-        reportRequests,
-        setDraftGrade,
-        studentActiveCourses,
-        studentAverageGrade,
-        studentCareer,
-        studentCurriculum,
-        studentHistory,
-        studentProfileDetails,
-        teacherAvailability: directorDashboardMock.teacherAvailability,
-        teachers: directorDashboardMock.teachers
-      }}
-    >
-      {children}
-    </AcademicDemoContext.Provider>
-  );
+    reportRequests,
+    createStudentRequest,
+
+    classGrades: gradeDrafts,
+    professorClasses,
+    professorClassStudents,
+    professorStats,
+    professorStudentsSummary,
+    setDraftGrade,
+    publishClassGrades,
+    closeClass,
+
+    directorCourses,
+    coursesCatalog: directorCourses,
+    directorStats,
+    directorCapacity,
+    directorProfessors,
+    directorStudents,
+    teacherAvailability,
+    teachers,
+    publishOffering,
+    publishCourse: publishOffering,
+    activateOffering,
+    closeOffering,
+    assignProfessorToOffering,
+    createDraftOffering,
+    createDraftCourse: createDraftOffering,
+
+    baseCoursesCatalog: baseCourses.map((course) => ({
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      department: course.department
+    }))
+  };
+
+  return <AcademicDemoContext.Provider value={value}>{children}</AcademicDemoContext.Provider>;
 }
 
 export function useAcademicDemo() {
