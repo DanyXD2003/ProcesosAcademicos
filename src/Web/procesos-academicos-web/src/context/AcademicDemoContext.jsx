@@ -795,12 +795,12 @@ export function AcademicDemoProvider({ children }) {
     );
   }
 
-  function closeClass(offeringId) {
+  function closeOfferingWithConsolidation(offeringId) {
     const selectedOffering = courseOfferingsById.get(offeringId);
     const publication = gradePublications[offeringId];
 
     if (!selectedOffering || selectedOffering.status === "Cerrado" || !publication) {
-      return;
+      return false;
     }
 
     const classEnrollments = enrollments.filter((item) => item.offeringId === offeringId);
@@ -828,14 +828,6 @@ export function AcademicDemoProvider({ children }) {
     );
 
     setAcademicRecords((current) => {
-      const filtered = current.filter((record) => {
-        if (record.offeringId !== offeringId) {
-          return true;
-        }
-
-        return !classEnrollments.some((enrollment) => enrollment.studentId === record.studentId);
-      });
-
       const consolidated = classEnrollments.map((enrollment) => {
         const grade = publication.grades[enrollment.studentId];
         return {
@@ -848,8 +840,14 @@ export function AcademicDemoProvider({ children }) {
         };
       });
 
-      return [...filtered, ...consolidated];
+      return [...current.filter((record) => record.offeringId !== offeringId), ...consolidated];
     });
+
+    return true;
+  }
+
+  function closeClass(offeringId) {
+    closeOfferingWithConsolidation(offeringId);
   }
 
   function publishOffering(offeringId) {
@@ -879,16 +877,7 @@ export function AcademicDemoProvider({ children }) {
   }
 
   function closeOffering(offeringId) {
-    setCourseOfferings((current) =>
-      current.map((offering) =>
-        offering.id === offeringId
-          ? {
-              ...offering,
-              status: "Cerrado"
-            }
-          : offering
-      )
-    );
+    closeOfferingWithConsolidation(offeringId);
   }
 
   function assignProfessorToOffering(offeringId, professorId) {
@@ -950,20 +939,23 @@ export function AcademicDemoProvider({ children }) {
 
   function createStudentRequest(type) {
     const requestType = type === "Cierre de pensum" ? "Cierre de pensum" : "Certificacion de cursos";
-    const requestId = nextRequestId(reportRequests);
     const issuedAt = formatDate(new Date());
-    const createdRequest = {
-      id: requestId,
-      studentId: CURRENT_STUDENT_ID,
-      studentName: currentStudent?.fullName ?? "Estudiante",
-      requestType,
-      requestedAt: issuedAt,
-      issuedAt,
-      downloadName: buildReportDownloadName(requestType, requestId)
-    };
 
-    setReportRequests((current) => [createdRequest, ...current]);
-    downloadGeneratedReport(createdRequest);
+    setReportRequests((current) => {
+      const requestId = nextRequestId(current);
+      const createdRequest = {
+        id: requestId,
+        studentId: CURRENT_STUDENT_ID,
+        studentName: currentStudent?.fullName ?? "Estudiante",
+        requestType,
+        requestedAt: issuedAt,
+        issuedAt,
+        downloadName: buildReportDownloadName(requestType, requestId)
+      };
+
+      downloadGeneratedReport(createdRequest);
+      return [createdRequest, ...current];
+    });
   }
 
   const value = {

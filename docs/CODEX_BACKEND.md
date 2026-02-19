@@ -86,10 +86,12 @@ Enums minimos:
 Invariantes obligatorias:
 - Aprobacion con nota >= 61.
 - No cerrar curso sin publicar notas.
+- Al cerrar una oferta, consolidar historial academico por oferta y cerrar inscripciones asociadas.
 - No editar notas despues de publicar.
 - No inscribir estudiante sin carrera activa.
 - Pendientes por pensum de cohorte + equivalencias.
 - Solicitudes de documentos con emision automatica (sin estado visible en UI).
+- Reportes del director en modo solo lectura (sin accion de descarga en tabla).
 
 Criterio de salida:
 - Entidades y enums definidos, compilando en Domain.
@@ -210,6 +212,7 @@ Pruebas API/integracion:
 - Rechazo por cupo/carrera/duplicado
 - Flujo profesor (draft -> publish -> close)
 - Flujo director de cursos (create -> publish -> activate -> assign-professor -> close con bloqueo por notas)
+- Validar que `close` actualiza estado de oferta, cierre de inscripciones y consolidacion academica.
 - Flujo director de pensum/equivalencias
 
 Criterio de salida:

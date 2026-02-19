@@ -228,7 +228,7 @@ Respuesta con error:
 | Director | Cursos | Asignar profesor | `POST /api/v1/director/courses/{offeringId}/assign-professor` |
 | Director | Profesores | Ver directorio | `GET /api/v1/director/professors` |
 | Director | Estudiantes | Ver directorio | `GET /api/v1/director/students` |
-| Director | Reportes | Ver historial solicitudes | `GET /api/v1/director/report-requests` |
+| Director | Reportes | Ver historial solicitudes (solo lectura) | `GET /api/v1/director/report-requests` |
 
 ---
 
@@ -307,6 +307,7 @@ Respuesta con error:
 - Auth: `Estudiante`
 - Request: `CreateReportRequestDto`
 - Response: `ReportRequestDto`
+- Nota: emision automatica e inmediata; el director no gestiona descarga desde su tabla.
 - Errores: `REPORT_TYPE_INVALID`
 
 ### `GET /api/v1/student/curriculum/progress`
@@ -418,6 +419,7 @@ Respuesta con error:
 - Auth: `Director`
 - Query: `type?`, `page`, `pageSize`
 - Response: paginado `ReportRequestDto`
+- Nota: vista de solo lectura para historial (sin accion de descarga).
 
 ### `GET /api/v1/director/teacher-availability`
 - Auth: `Director`
@@ -521,10 +523,12 @@ Respuesta con error:
 10. Cierre de oferta por director:
 - El director puede cerrar oferta solo si las notas ya fueron publicadas.
 - Si no hay notas publicadas, debe responder `COURSE_CANNOT_CLOSE_UNTIL_GRADES_PUBLISHED`.
+- Al cerrar, se consolida historial academico por oferta y se cierran las inscripciones de esa oferta.
 
 11. Solicitudes de reporte:
 - La solicitud se procesa de forma automatica y se emite en el momento.
 - En UI no se expone estado operativo; solo registro de solicitud/emision.
+- La tabla del director es historica y de solo lectura.
 
 ---
 
@@ -943,7 +947,6 @@ Relaciones clave:
 - `requestType`
 - `requestedAt`
 - `issuedAt?`
-- `downloadUrl?`
 
 ### `TeacherAvailabilityDto`
 - `professorId`

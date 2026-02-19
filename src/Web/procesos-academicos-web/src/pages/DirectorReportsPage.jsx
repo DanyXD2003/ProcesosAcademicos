@@ -24,7 +24,7 @@ export default function DirectorReportsPage() {
     >
       <SectionCard
         right={<span className="text-xs text-slate-400">Page size: {PAGE_SIZE}</span>}
-        subtitle="Solicitudes de cierre de pensum y certificacion de cursos"
+        subtitle="Solo lectura: historial de solicitudes emitidas por el sistema"
         title="Historial de solicitudes"
       >
         <div className="overflow-x-auto">
@@ -36,7 +36,6 @@ export default function DirectorReportsPage() {
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha solicitud</th>
                 <th className="px-3 py-3">Fecha emision</th>
-                <th className="px-3 py-3">Descarga</th>
               </tr>
             </thead>
             <tbody>
@@ -47,15 +46,6 @@ export default function DirectorReportsPage() {
                   <td className="px-3 py-3 text-slate-300">{report.requestType}</td>
                   <td className="px-3 py-3 text-slate-300">{report.requestedAt}</td>
                   <td className="px-3 py-3 text-slate-300">{report.issuedAt || "-"}</td>
-                  <td className="px-3 py-3 text-slate-300">
-                    {report.downloadName ? (
-                      <button className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-200" type="button">
-                        Descargar
-                      </button>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>

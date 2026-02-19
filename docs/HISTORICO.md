@@ -120,6 +120,7 @@ Ahora:
   - promedio en escala 0-100.
 - En reportes:
   - historial de solicitudes de alumnos (certificacion/cierre de pensum).
+  - vista de solo lectura, sin columna de descarga.
 
 Impacto para el usuario:
 - Vista directiva mas accionable y menos administrativa.
@@ -194,7 +195,7 @@ Este refactor deja el producto listo para conectar con API real.
 Que ya quedo claro para backend:
 - Flujos obligatorios por rol.
 - Reglas de negocio que no deben cambiar.
-- Estados de curso y estados de solicitud.
+- Estados de curso y solicitudes con emision automatica (sin estado visible en UI).
 - Datos minimos que cada pantalla necesita.
 - Identidad operativa por oferta (`courseOfferingId` / `offeringId`) y separacion de curso base vs oferta por periodo.
 
