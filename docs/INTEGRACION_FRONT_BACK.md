@@ -206,7 +206,7 @@ Respuesta con error:
 | Estudiante | Dashboard (sin carrera) | Cargar carreras | `GET /api/v1/student/profile` + `GET /api/v1/student/dashboard` |
 | Estudiante | Dashboard (sin carrera) | Inscribirse a carrera | `POST /api/v1/student/career-enrollment` |
 | Estudiante | Dashboard | Ver metricas y cursos activos | `GET /api/v1/student/dashboard` |
-| Estudiante | Dashboard | Solicitar certificacion/cierre | `POST /api/v1/student/report-requests` |
+| Estudiante | Dashboard | Solicitar certificacion/cierre (con descarga inmediata) | `POST /api/v1/student/report-requests` |
 | Estudiante | Mis cursos | Ver cursos disponibles | `GET /api/v1/student/courses/available` |
 | Estudiante | Mis cursos | Inscribirse a curso | `POST /api/v1/student/courses/{offeringId}/enroll` |
 | Estudiante | Mis cursos | Ver cursos activos | `GET /api/v1/student/courses/active` |
@@ -306,8 +306,8 @@ Respuesta con error:
 ### `POST /api/v1/student/report-requests`
 - Auth: `Estudiante`
 - Request: `CreateReportRequestDto`
-- Response: `ReportRequestDto`
-- Nota: emision automatica e inmediata; el director no gestiona descarga desde su tabla.
+- Response: `StudentReportRequestResultDto`
+- Nota: emision automatica e inmediata; la respuesta incluye URL temporal de descarga para el estudiante.
 - Errores: `REPORT_TYPE_INVALID`
 
 ### `GET /api/v1/student/curriculum/progress`
@@ -418,7 +418,7 @@ Respuesta con error:
 ### `GET /api/v1/director/report-requests`
 - Auth: `Director`
 - Query: `type?`, `page`, `pageSize`
-- Response: paginado `ReportRequestDto`
+- Response: paginado `DirectorReportRequestDto`
 - Nota: vista de solo lectura para historial (sin accion de descarga).
 
 ### `GET /api/v1/director/teacher-availability`
@@ -527,6 +527,7 @@ Respuesta con error:
 
 11. Solicitudes de reporte:
 - La solicitud se procesa de forma automatica y se emite en el momento.
+- La respuesta de solicitud del estudiante retorna enlace temporal para descarga inmediata.
 - En UI no se expone estado operativo; solo registro de solicitud/emision.
 - La tabla del director es historica y de solo lectura.
 
@@ -698,7 +699,7 @@ Relaciones clave:
 - `request_type varchar(40) not null` (`Certificacion de cursos`, `Cierre de pensum`)
 - `requested_at timestamptz not null`
 - `issued_at timestamptz null`
-- `download_url varchar(512) null`
+- `download_url varchar(512) null` (URL temporal para descarga inmediata del estudiante; no visible en tabla director)
 
 ### `teacher_availability_snapshots`
 - `id uuid pk`
@@ -818,6 +819,13 @@ Relaciones clave:
 
 ### `CreateReportRequestDto`
 - `requestType` (`Certificacion de cursos` | `Cierre de pensum`)
+
+### `StudentReportRequestResultDto`
+- `requestId`
+- `requestType`
+- `requestedAt`
+- `issuedAt`
+- `downloadUrl`
 
 ## 11.3 Professor DTOs
 
@@ -941,7 +949,7 @@ Relaciones clave:
 - `semester`
 - `average0to100`
 
-### `ReportRequestDto`
+### `DirectorReportRequestDto`
 - `requestId`
 - `studentName`
 - `requestType`

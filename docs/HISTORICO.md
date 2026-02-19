@@ -132,6 +132,7 @@ Impacto para el usuario:
   - `Borrador -> Publicado -> Activo -> Cerrado`
 - Se simplifico solicitud de documentos:
   - generacion y emision automatica sin estado visible en UI.
+  - descarga inmediata para estudiante y tabla de director en solo lectura.
 - Se mantuvo la app en modo datos locales (sin backend).
 
 ---

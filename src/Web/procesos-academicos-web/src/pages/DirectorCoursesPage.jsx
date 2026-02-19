@@ -167,7 +167,7 @@ export default function DirectorCoursesPage() {
                           </button>
                         ) : null}
 
-                        {course.status === "Activo" || course.status === "Publicado" ? (
+                        {course.status === "Activo" && course.gradesPublished ? (
                           <button
                             className="rounded-lg border border-rose-500/40 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10"
                             onClick={() => closeOffering(course.offeringId)}
@@ -175,6 +175,12 @@ export default function DirectorCoursesPage() {
                           >
                             Cerrar
                           </button>
+                        ) : null}
+
+                        {course.status === "Activo" && !course.gradesPublished ? (
+                          <span className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                            Esperando notas publicadas
+                          </span>
                         ) : null}
 
                         <button

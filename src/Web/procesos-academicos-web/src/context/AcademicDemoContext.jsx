@@ -291,6 +291,7 @@ export function AcademicDemoProvider({ children }) {
       seats: `${offering.seatsTaken}/${offering.seatsTotal}`,
       professorId: offering.professorId,
       professor: professor?.fullName ?? "Sin asignar",
+      gradesPublished: Boolean(gradePublications[offering.id]),
       publicationStatus: statusTone(offering.status),
       status: statusTone(offering.status)
     };
@@ -493,7 +494,7 @@ export function AcademicDemoProvider({ children }) {
       courseOfferings
         .map((offering) => buildOfferingView(offering))
         .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode)),
-    [courseOfferings]
+    [courseOfferings, gradePublications]
   );
 
   const directorStats = useMemo(() => {

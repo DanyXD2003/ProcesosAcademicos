@@ -113,11 +113,11 @@ Casos minimos por modulo:
 - Auth:
   - login, refresh, logout, me
 - Student:
-  - profile, career-enrollment, dashboard, available courses, active courses, enroll por `offeringId`, academic-record, report-request, curriculum-progress
+  - profile, career-enrollment, dashboard, available courses, active courses, enroll por `offeringId`, academic-record, report-request (retorna descarga inmediata), curriculum-progress
 - Professor:
   - dashboard, classes, class-students (classId == courseOfferingId), save draft grades, publish grades, close class, students summary
 - Director:
-  - dashboard, courses list/create/publish/activate/close/assign-professor, professors list, students list, report-requests list, teacher-availability, curriculum-versions, curriculum-assignment, course-equivalences
+  - dashboard, courses list/create/publish/activate/close/assign-professor, professors list, students list, report-requests list (solo lectura), teacher-availability, curriculum-versions, curriculum-assignment, course-equivalences
 
 Criterio de salida:
 - Handlers y contratos compilando, desacoplados de persistencia concreta.
