@@ -1,16 +1,26 @@
+import { Navigate } from "react-router-dom";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import { studentDashboardMock } from "../mocks/student.mock";
+import { useAcademicDemo } from "../context/AcademicDemoContext";
 import { getStudentSidebarItems } from "../navigation/sidebarItems";
+import { appPaths, withPage } from "../router/paths";
 
 export default function StudentProfilePage() {
-  const details = studentDashboardMock.profileDetails;
+  const { profile, studentCareer, studentProfileDetails } = useAcademicDemo();
+
+  if (!studentCareer) {
+    return <Navigate replace to={withPage(appPaths.dashboard.student)} />;
+  }
 
   return (
     <DashboardLayout
-      actions={<button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">Editar perfil</button>}
+      actions={
+        <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
+          Editar perfil
+        </button>
+      }
       navItems={getStudentSidebarItems()}
-      profile={studentDashboardMock.profile}
+      profile={profile}
       roleLabel="Estudiante"
       searchPlaceholder="Buscar en perfil"
       subtitle="Informacion personal y academica"
@@ -21,27 +31,27 @@ export default function StudentProfilePage() {
           <dl className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Nombre completo</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.fullName}</dd>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.fullName}</dd>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">ID</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.studentId}</dd>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.studentId}</dd>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Programa</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.program}</dd>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.program}</dd>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Facultad</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.faculty}</dd>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.faculty}</dd>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Semestre</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.semester}</dd>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.semester}</dd>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-              <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Docente asesor</dt>
-              <dd className="mt-2 text-sm font-semibold text-white">{details.advisor}</dd>
+              <dt className="text-xs uppercase tracking-[0.12em] text-slate-400">Carrera</dt>
+              <dd className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.career}</dd>
             </div>
           </dl>
         </SectionCard>
@@ -50,25 +60,15 @@ export default function StudentProfilePage() {
           <div className="space-y-3">
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Correo</p>
-              <p className="mt-2 text-sm font-semibold text-white">{details.email}</p>
+              <p className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.email}</p>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Telefono</p>
-              <p className="mt-2 text-sm font-semibold text-white">{details.phone}</p>
+              <p className="mt-2 text-sm font-semibold text-white">{studentProfileDetails.phone}</p>
             </div>
           </div>
         </SectionCard>
       </div>
-
-      <SectionCard subtitle="Recordatorios importantes" title="Alertas" right={<span className="text-xs text-slate-400">Visual demo</span>}>
-        <ul className="space-y-3">
-          {studentDashboardMock.alerts.map((item) => (
-            <li className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-200" key={item}>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </SectionCard>
     </DashboardLayout>
   );
 }

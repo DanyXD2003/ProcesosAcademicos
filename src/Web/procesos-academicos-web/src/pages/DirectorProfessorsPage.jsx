@@ -7,18 +7,6 @@ import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
-function statusClass(status) {
-  if (status === "Disponible") {
-    return "bg-emerald-500/20 text-emerald-200";
-  }
-
-  if (status === "En clase") {
-    return "bg-amber-500/20 text-amber-200";
-  }
-
-  return "bg-rose-500/20 text-rose-200";
-}
-
 export default function DirectorProfessorsPage() {
   const { page, totalPages, setPage } = usePaginationQuery(directorDashboardMock.professorsRegistry.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
@@ -56,29 +44,40 @@ export default function DirectorProfessorsPage() {
                 <th className="px-3 py-3">Nombre</th>
                 <th className="px-3 py-3">Departamento</th>
                 <th className="px-3 py-3">Carga</th>
-                <th className="px-3 py-3">Estado</th>
                 <th className="px-3 py-3 text-right">Accion</th>
               </tr>
             </thead>
             <tbody>
-              {professors.map((professor) => (
-                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={professor.id}>
-                  <td className="px-3 py-3 font-semibold text-white">{professor.id}</td>
-                  <td className="px-3 py-3">{professor.name}</td>
-                  <td className="px-3 py-3 text-slate-300">{professor.department}</td>
-                  <td className="px-3 py-3 text-slate-300">{professor.load}</td>
-                  <td className="px-3 py-3">
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusClass(professor.status)}`}>
-                      {professor.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <button className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-                      Ver detalle
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {professors.map((professor) => {
+                const percent = Math.min(100, Math.round((professor.load / 5) * 100));
+
+                return (
+                  <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={professor.id}>
+                    <td className="px-3 py-3 font-semibold text-white">{professor.id}</td>
+                    <td className="px-3 py-3">{professor.name}</td>
+                    <td className="px-3 py-3 text-slate-300">{professor.department}</td>
+                    <td className="px-3 py-3">
+                      <div className="w-44">
+                        <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
+                          <span>{professor.load}/5 cursos</span>
+                          <span>{percent}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-800">
+                          <div
+                            className={`h-full rounded-full ${professor.load >= 5 ? "bg-rose-400" : professor.load >= 4 ? "bg-amber-400" : "bg-emerald-400"}`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <button className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
+                        Ver detalle
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -7,16 +7,13 @@ import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 6;
 
-function riskClass(risk) {
-  if (risk === "Bajo") {
-    return "bg-emerald-500/20 text-emerald-200";
+function getAverageGrade(grades) {
+  if (!Array.isArray(grades) || grades.length === 0) {
+    return "-";
   }
 
-  if (risk === "Medio") {
-    return "bg-amber-500/20 text-amber-200";
-  }
-
-  return "bg-rose-500/20 text-rose-200";
+  const total = grades.reduce((sum, value) => sum + value, 0);
+  return (total / grades.length).toFixed(1);
 }
 
 export default function DirectorStudentsPage() {
@@ -40,12 +37,12 @@ export default function DirectorStudentsPage() {
       profile={directorDashboardMock.profile}
       roleLabel="Director"
       searchPlaceholder="Buscar estudiante"
-      subtitle="Seguimiento de rendimiento estudiantil sin gestion de inscripciones"
+      subtitle="Seguimiento de rendimiento estudiantil"
       title="Estudiantes"
     >
       <SectionCard
         right={<span className="text-xs text-slate-400">Page size: {PAGE_SIZE}</span>}
-        subtitle="Vista de alumnos con indicadores de riesgo academico"
+        subtitle="Vista de alumnos con indicadores academicos"
         title="Directorio de estudiantes"
       >
         <div className="overflow-x-auto">
@@ -56,8 +53,7 @@ export default function DirectorStudentsPage() {
                 <th className="px-3 py-3">Nombre</th>
                 <th className="px-3 py-3">Programa</th>
                 <th className="px-3 py-3">Semestre</th>
-                <th className="px-3 py-3">GPA</th>
-                <th className="px-3 py-3">Riesgo</th>
+                <th className="px-3 py-3">Promedio (0-100)</th>
               </tr>
             </thead>
             <tbody>
@@ -67,12 +63,7 @@ export default function DirectorStudentsPage() {
                   <td className="px-3 py-3">{student.name}</td>
                   <td className="px-3 py-3 text-slate-300">{student.program}</td>
                   <td className="px-3 py-3 text-slate-300">{student.semester}</td>
-                  <td className="px-3 py-3 text-slate-300">{student.gpa}</td>
-                  <td className="px-3 py-3">
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${riskClass(student.risk)}`}>
-                      {student.risk}
-                    </span>
-                  </td>
+                  <td className="px-3 py-3 text-slate-300">{getAverageGrade(student.courseGrades)}</td>
                 </tr>
               ))}
             </tbody>

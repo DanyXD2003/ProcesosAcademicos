@@ -2,12 +2,25 @@ import { useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import StatCard from "../components/common/StatCard";
 import AssignProfessorModal from "../components/director/AssignProfessorModal";
+import NewCourseModal from "../components/director/NewCourseModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
 import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 4;
+
+function parseSeats(value) {
+  const [usedRaw = "0", capacityRaw = "0"] = `${value}`.split("/");
+  const used = Number(usedRaw);
+  const capacity = Number(capacityRaw);
+
+  return {
+    used: Number.isFinite(used) ? used : 0,
+    capacity: Number.isFinite(capacity) ? capacity : 0
+  };
+}
 
 function progressTone(value) {
   if (value >= 90) {
@@ -21,49 +34,51 @@ function progressTone(value) {
   return "bg-amber-400";
 }
 
-function metricTone(tone) {
-  if (tone === "emerald") {
-    return "bg-emerald-500/15 text-emerald-200";
+function statusTone(status) {
+  if (status === "Activo") {
+    return "bg-emerald-500/20 text-emerald-200";
   }
 
-  if (tone === "rose") {
-    return "bg-rose-500/15 text-rose-200";
+  if (status === "Publicado") {
+    return "bg-amber-500/20 text-amber-200";
   }
 
-  return "bg-sky-500/15 text-sky-200";
+  if (status === "Borrador") {
+    return "bg-slate-700 text-slate-200";
+  }
+
+  return "bg-rose-500/20 text-rose-200";
 }
 
 export default function DirectorDashboardPage() {
-  const { page, totalPages, setPage } = usePaginationQuery(directorDashboardMock.classes.length, PAGE_SIZE);
+  const { careersCatalog, coursesCatalog, createDraftCourse, directorCapacity, directorStats, teacherAvailability, teachers } = useAcademicDemo();
+  const { page, totalPages, setPage } = usePaginationQuery(coursesCatalog.length, PAGE_SIZE);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTeacherId, setSelectedTeacherId] = useState(directorDashboardMock.teachers[0].id);
+  const [newCourseModalOpen, setNewCourseModalOpen] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState(teachers[0]?.id ?? "");
   const startIndex = (page - 1) * PAGE_SIZE;
-  const visibleClasses = directorDashboardMock.classes.slice(startIndex, startIndex + PAGE_SIZE);
+  const visibleClasses = coursesCatalog.slice(startIndex, startIndex + PAGE_SIZE);
 
-  const navItems = getDirectorSidebarItems();
-
-  function handleConfirmModal() {
-    setModalOpen(false);
-  }
+  const dashboardStats = [
+    { icon: "group", label: "Total alumnos", value: `${directorStats.totalStudents}` },
+    { icon: "co_present", label: "Profesores activos", value: `${directorStats.totalProfessors}` },
+    { icon: "class", label: "Clases activas", value: `${directorStats.activeClasses}` },
+    { icon: "pending_actions", label: "Clases pendientes", value: `${directorStats.pendingClasses}` }
+  ];
 
   return (
     <>
       <DashboardLayout
         actions={
-          <>
-            <button className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-              Reporte
-            </button>
-            <button
-              className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
-              onClick={() => setModalOpen(true)}
-              type="button"
-            >
-              Nueva asignacion
-            </button>
-          </>
+          <button
+            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
+            onClick={() => setNewCourseModalOpen(true)}
+            type="button"
+          >
+            Nuevo curso
+          </button>
         }
-        navItems={navItems}
+        navItems={getDirectorSidebarItems()}
         profile={directorDashboardMock.profile}
         roleLabel="Director"
         searchPlaceholder="Buscar registros"
@@ -71,8 +86,8 @@ export default function DirectorDashboardPage() {
         title="Dashboard administrativo"
       >
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {directorDashboardMock.stats.map((item) => (
-            <StatCard change={item.change} changeTone={item.changeTone} icon={item.icon} key={item.label} label={item.label} value={item.value} />
+          {dashboardStats.map((item) => (
+            <StatCard icon={item.icon} key={item.label} label={item.label} value={item.value} />
           ))}
         </section>
 
@@ -89,54 +104,60 @@ export default function DirectorDashboardPage() {
                   <th className="px-3 py-3">Clase</th>
                   <th className="px-3 py-3">Profesor</th>
                   <th className="px-3 py-3">Capacidad</th>
-                  <th className="px-3 py-3">Horario</th>
+                  <th className="px-3 py-3">Estado</th>
                   <th className="px-3 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleClasses.map((course) => (
-                  <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={course.id}>
-                    <td className="px-3 py-3">
-                      <p className="font-semibold text-white">{course.subject}</p>
-                      <p className="text-xs text-slate-400">
-                        {course.id} | {course.room}
-                      </p>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${
-                          course.assigned ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200"
-                        }`}
-                      >
-                        {course.teacher}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="w-40">
-                        <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
-                          <span>{course.occupancy}</span>
-                          <span>{course.occupancyPercent}%</span>
+                {visibleClasses.map((course) => {
+                  const seats = parseSeats(course.seats);
+                  const occupancyPercent = seats.capacity > 0 ? Math.round((seats.used / seats.capacity) * 100) : 0;
+
+                  return (
+                    <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={course.code}>
+                      <td className="px-3 py-3">
+                        <p className="font-semibold text-white">{course.course}</p>
+                        <p className="text-xs text-slate-400">
+                          {course.code} | Seccion {course.section}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${
+                            course.professor === "Sin asignar" ? "bg-rose-500/20 text-rose-200" : "bg-emerald-500/20 text-emerald-200"
+                          }`}
+                        >
+                          {course.professor}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="w-40">
+                          <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
+                            <span>{course.seats}</span>
+                            <span>{occupancyPercent}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-800">
+                            <div className={`h-full rounded-full ${progressTone(occupancyPercent)}`} style={{ width: `${occupancyPercent}%` }} />
+                          </div>
                         </div>
-                        <div className="h-2 rounded-full bg-slate-800">
-                          <div
-                            className={`h-full rounded-full ${progressTone(course.occupancyPercent)}`}
-                            style={{ width: `${course.occupancyPercent}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-slate-400">{course.schedule}</td>
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        className="rounded-lg border border-sky-400/50 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/10"
-                        onClick={() => setModalOpen(true)}
-                        type="button"
-                      >
-                        Asignar profesor
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${statusTone(course.publicationStatus)}`}>
+                          {course.publicationStatus}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          className="rounded-lg border border-sky-400/50 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-500/10"
+                          onClick={() => setModalOpen(true)}
+                          type="button"
+                        >
+                          Asignar profesor
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -150,7 +171,7 @@ export default function DirectorDashboardPage() {
           <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
             <h3 className="text-lg font-bold text-white">Disponibilidad docente</h3>
             <div className="mt-4 space-y-3">
-              {directorDashboardMock.teacherAvailability.map((teacher) => (
+              {teacherAvailability.map((teacher) => (
                 <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2" key={teacher.name}>
                   <div>
                     <p className="text-sm font-semibold text-white">{teacher.name}</p>
@@ -173,37 +194,19 @@ export default function DirectorDashboardPage() {
           </article>
 
           <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-            <h3 className="text-lg font-bold text-white">Inscripciones</h3>
+            <h3 className="text-lg font-bold text-white">Capacidad de clases</h3>
             <div className="mt-4 space-y-3">
-              {directorDashboardMock.enrollmentOverview.map((metric) => (
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3" key={metric.label}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">{metric.label}</p>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${metricTone(metric.tone)}`}>
-                      {metric.value}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-800">
-                    <div className="h-full rounded-full bg-sky-400" style={{ width: `${metric.progress}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 border-t border-slate-800 pt-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Ultimas inscripciones</p>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {directorDashboardMock.recentEnrollments.map((student) => (
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/60 px-2 py-2" key={student.name}>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-[10px] font-semibold text-slate-100">
-                      {student.initials}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{student.name}</p>
-                      <p className="text-xs text-slate-400">{student.program}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Alumnos en clases activas</p>
+                <p className="mt-2 text-3xl font-bold text-emerald-200">{directorCapacity.activeStudents}</p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Capacidad en clases pendientes</p>
+                <p className="mt-2 text-3xl font-bold text-amber-200">{directorCapacity.pendingCapacity}</p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Capacidad total</p>
+                <p className="mt-2 text-3xl font-bold text-sky-200">{directorCapacity.totalCapacity}</p>
               </div>
             </div>
           </article>
@@ -212,11 +215,17 @@ export default function DirectorDashboardPage() {
 
       <AssignProfessorModal
         onClose={() => setModalOpen(false)}
-        onConfirm={handleConfirmModal}
+        onConfirm={() => setModalOpen(false)}
         onSelect={setSelectedTeacherId}
         open={modalOpen}
         selectedTeacherId={selectedTeacherId}
-        teachers={directorDashboardMock.teachers}
+        teachers={teachers}
+      />
+      <NewCourseModal
+        careers={careersCatalog}
+        onClose={() => setNewCourseModalOpen(false)}
+        onCreate={createDraftCourse}
+        open={newCourseModalOpen}
       />
     </>
   );

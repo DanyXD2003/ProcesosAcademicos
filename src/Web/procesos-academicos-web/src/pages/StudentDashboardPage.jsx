@@ -1,50 +1,123 @@
+import { useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import StatCard from "../components/common/StatCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
-import { studentDashboardMock } from "../mocks/student.mock";
 import { getStudentSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 4;
 
 export default function StudentDashboardPage() {
-  const { activeCourses } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(studentDashboardMock.history.length, PAGE_SIZE);
+  const {
+    approvedCurriculumCount,
+    careersCatalog,
+    createStudentRequest,
+    enrollCareer,
+    pendingCurriculumCount,
+    profile,
+    studentActiveCourses,
+    studentAverageGrade,
+    studentCareer,
+    studentHistory
+  } = useAcademicDemo();
+  const [requestMessage, setRequestMessage] = useState("");
+
+  const { page, totalPages, setPage } = usePaginationQuery(studentHistory.length, PAGE_SIZE);
   const startIndex = (page - 1) * PAGE_SIZE;
-  const historyRows = studentDashboardMock.history.slice(startIndex, startIndex + PAGE_SIZE);
+  const historyRows = studentHistory.slice(startIndex, startIndex + PAGE_SIZE);
 
-  const dashboardStats = studentDashboardMock.stats.map((item) => {
-    if (item.label !== "Cursos en progreso") {
-      return item;
+  const dashboardStats = [
+    {
+      icon: "trending_up",
+      label: "Promedio general",
+      value: studentAverageGrade,
+      change: "Historico",
+      changeTone: "neutral"
+    },
+    {
+      icon: "school",
+      label: "Cursos aprobados/pendientes",
+      value: `${approvedCurriculumCount}/${pendingCurriculumCount}`,
+      change: "Pensum",
+      changeTone: "neutral"
+    },
+    {
+      icon: "menu_book",
+      label: "Cursos en progreso",
+      value: `${studentActiveCourses.length}`,
+      change: studentActiveCourses.length > 0 ? "Activo" : "Sin cursos",
+      changeTone: "neutral"
     }
+  ];
 
-    return {
-      ...item,
-      change: activeCourses.length > 0 ? "Activo" : "Sin cursos",
-      value: `${activeCourses.length}`
-    };
-  });
+  if (!studentCareer) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-8 text-slate-100">
+        <section className="w-full max-w-4xl rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
+          <p className="text-xs uppercase tracking-[0.12em] text-sky-300">Portal estudiante</p>
+          <h1 className="mt-3 text-3xl font-bold text-white">Inscribete en una carrera para iniciar</h1>
+          <p className="mt-2 text-sm text-slate-300">
+            Antes de usar el modulo academico, debes seleccionar una carrera activa.
+          </p>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {careersCatalog.map((career) => (
+              <article className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" key={career}>
+                <h2 className="text-base font-semibold text-white">{career}</h2>
+                <p className="mt-2 text-sm text-slate-400">Se habilitara tu dashboard y tus cursos segun este pensum.</p>
+                <button
+                  className="mt-4 w-full rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
+                  onClick={() => enrollCareer(career)}
+                  type="button"
+                >
+                  Inscribirme
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <DashboardLayout
       actions={
         <>
-          <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
+          <button
+            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
+            onClick={() => {
+              createStudentRequest("Certificacion de cursos");
+              setRequestMessage("Solicitud de certificacion enviada.");
+            }}
+            type="button"
+          >
             Generar certificado
           </button>
-          <button className="rounded-xl border border-sky-400/50 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/10" type="button">
+          <button
+            className="rounded-xl border border-sky-400/50 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/10"
+            onClick={() => {
+              createStudentRequest("Cierre de pensum");
+              setRequestMessage("Solicitud de cierre de pensum enviada.");
+            }}
+            type="button"
+          >
             Cierre de pensum
           </button>
         </>
       }
       navItems={getStudentSidebarItems()}
-      profile={studentDashboardMock.profile}
+      profile={profile}
       roleLabel="Estudiante"
       searchPlaceholder="Buscar curso o actividad"
       subtitle="Vista visual del portal del estudiante"
       title="Dashboard del estudiante"
     >
+      {requestMessage ? (
+        <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">{requestMessage}</div>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-3">
         {dashboardStats.map((item) => (
           <StatCard change={item.change} changeTone={item.changeTone} icon={item.icon} key={item.label} label={item.label} value={item.value} />
@@ -54,12 +127,12 @@ export default function StudentDashboardPage() {
       <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Resumen rapido de cursos activos</h2>
-          <span className="text-xs uppercase tracking-[0.12em] text-slate-400">{activeCourses.length} activos</span>
+          <span className="text-xs uppercase tracking-[0.12em] text-slate-400">{studentActiveCourses.length} activos</span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {activeCourses.length > 0 ? (
-            activeCourses.map((course) => (
+          {studentActiveCourses.length > 0 ? (
+            studentActiveCourses.map((course) => (
               <article className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" key={course.code}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -71,9 +144,7 @@ export default function StudentDashboardPage() {
                 <p className="mt-3 text-xs text-slate-400">
                   Carrera: {course.career} | Profesor: {course.professor}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Seccion {course.section} | {course.modality} | Cupos {course.seats}
-                </p>
+                <p className="mt-1 text-xs text-slate-400">Seccion {course.section} | Cupos {course.seats}</p>
               </article>
             ))
           ) : (
@@ -111,7 +182,11 @@ export default function StudentDashboardPage() {
                   <td className="px-3 py-3">{row.credits}</td>
                   <td className="px-3 py-3 font-semibold text-sky-200">{row.grade}</td>
                   <td className="px-3 py-3">
-                    <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase text-emerald-200">
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${
+                        row.status === "Aprobado" ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200"
+                      }`}
+                    >
                       {row.status}
                     </span>
                   </td>

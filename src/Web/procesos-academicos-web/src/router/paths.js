@@ -10,15 +10,12 @@ export const appPaths = {
 
     professor: "/dashboard/profesor",
     professorClasses: "/dashboard/profesor/mis-clases",
-    professorSchedule: "/dashboard/profesor/horario",
-    professorReports: "/dashboard/profesor/reportes",
     professorStudents: "/dashboard/profesor/estudiantes",
 
     student: "/dashboard/estudiante",
     studentMyCourses: "/dashboard/estudiante/mis-cursos",
     studentProfile: "/dashboard/estudiante/perfil",
-    studentAcademicRecord: "/dashboard/estudiante/registro-academico",
-    studentSettings: "/dashboard/estudiante/configuracion"
+    studentAcademicRecord: "/dashboard/estudiante/registro-academico"
   }
 };
 

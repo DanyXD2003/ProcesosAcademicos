@@ -1,18 +1,19 @@
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import { useAcademicDemo } from "../context/AcademicDemoContext";
 import usePaginationQuery from "../hooks/usePaginationQuery";
 import { directorDashboardMock } from "../mocks/director.mock";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 5;
 
 function reportStatusClass(status) {
-  if (status === "Publicado") {
+  if (status === "Generado") {
     return "bg-emerald-500/20 text-emerald-200";
   }
 
-  if (status === "Revision") {
+  if (status === "En proceso") {
     return "bg-amber-500/20 text-amber-200";
   }
 
@@ -20,56 +21,59 @@ function reportStatusClass(status) {
 }
 
 export default function DirectorReportsPage() {
-  const { page, totalPages, setPage } = usePaginationQuery(directorDashboardMock.reportsRegistry.length, PAGE_SIZE);
+  const { reportRequests } = useAcademicDemo();
+  const { page, totalPages, setPage } = usePaginationQuery(reportRequests.length, PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
-  const reports = directorDashboardMock.reportsRegistry.slice(start, start + PAGE_SIZE);
+  const reports = reportRequests.slice(start, start + PAGE_SIZE);
 
   return (
     <DashboardLayout
-      actions={
-        <>
-          <button className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-            Programar envio
-          </button>
-          <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
-            Crear reporte
-          </button>
-        </>
-      }
       navItems={getDirectorSidebarItems()}
       profile={directorDashboardMock.profile}
       roleLabel="Director"
-      searchPlaceholder="Buscar reporte"
-      subtitle="Centro de reporteria institucional"
+      searchPlaceholder="Buscar solicitud"
+      subtitle="Historial de reportes solicitados por alumnos"
       title="Reportes"
     >
       <SectionCard
         right={<span className="text-xs text-slate-400">Page size: {PAGE_SIZE}</span>}
-        subtitle="Listado de reportes publicados y pendientes"
-        title="Biblioteca de reportes"
+        subtitle="Solicitudes de cierre de pensum y certificacion de cursos"
+        title="Historial de solicitudes"
       >
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 text-xs uppercase tracking-[0.12em] text-sky-300">
                 <th className="px-3 py-3">ID</th>
-                <th className="px-3 py-3">Reporte</th>
-                <th className="px-3 py-3">Periodo</th>
-                <th className="px-3 py-3">Responsable</th>
+                <th className="px-3 py-3">Estudiante</th>
+                <th className="px-3 py-3">Tipo</th>
+                <th className="px-3 py-3">Fecha solicitud</th>
                 <th className="px-3 py-3">Estado</th>
+                <th className="px-3 py-3">Fecha emision</th>
+                <th className="px-3 py-3">Descarga</th>
               </tr>
             </thead>
             <tbody>
               {reports.map((report) => (
                 <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={report.id}>
                   <td className="px-3 py-3 font-semibold text-white">{report.id}</td>
-                  <td className="px-3 py-3">{report.name}</td>
-                  <td className="px-3 py-3 text-slate-300">{report.period}</td>
-                  <td className="px-3 py-3 text-slate-300">{report.owner}</td>
+                  <td className="px-3 py-3">{report.studentName}</td>
+                  <td className="px-3 py-3 text-slate-300">{report.requestType}</td>
+                  <td className="px-3 py-3 text-slate-300">{report.requestedAt}</td>
                   <td className="px-3 py-3">
                     <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${reportStatusClass(report.status)}`}>
                       {report.status}
                     </span>
+                  </td>
+                  <td className="px-3 py-3 text-slate-300">{report.issuedAt || "-"}</td>
+                  <td className="px-3 py-3 text-slate-300">
+                    {report.status === "Generado" && report.downloadName ? (
+                      <button className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-200" type="button">
+                        Descargar
+                      </button>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                 </tr>
               ))}

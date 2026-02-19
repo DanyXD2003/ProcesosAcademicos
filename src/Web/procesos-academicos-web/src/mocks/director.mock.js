@@ -4,91 +4,6 @@ export const directorDashboardMock = {
     subtitle: "Director Administrativo",
     initials: "AR"
   },
-  stats: [
-    { icon: "group", label: "Total alumnos", value: "1,250", change: "+2.5%", changeTone: "positive" },
-    { icon: "co_present", label: "Profesores activos", value: "84", change: "-1.2%", changeTone: "negative" },
-    { icon: "class", label: "Clases programadas", value: "42", change: "Estable", changeTone: "neutral" },
-    { icon: "pie_chart", label: "Ocupacion total", value: "88%", change: "+5%", changeTone: "positive" }
-  ],
-  classes: [
-    {
-      id: "CL-2024-001",
-      short: "M1",
-      subject: "Matematicas Avanzadas I",
-      room: "Aula 102",
-      teacher: "Dra. Helena Vance",
-      assigned: true,
-      occupancy: "28/30",
-      occupancyPercent: 93,
-      schedule: "Lun - Mie, 08:00"
-    },
-    {
-      id: "CL-2024-042",
-      short: "H3",
-      subject: "Historia Contemporanea",
-      room: "Aula 204",
-      teacher: "Sin asignar",
-      assigned: false,
-      occupancy: "12/25",
-      occupancyPercent: 48,
-      schedule: "Mar - Jue, 10:30"
-    },
-    {
-      id: "CL-2024-015",
-      short: "B2",
-      subject: "Biologia Celular",
-      room: "Laboratorio B",
-      teacher: "Dr. Marcos G.",
-      assigned: true,
-      occupancy: "20/20",
-      occupancyPercent: 100,
-      schedule: "Viernes, 09:00"
-    },
-    {
-      id: "CL-2024-020",
-      short: "Q4",
-      subject: "Quimica Organica",
-      room: "Aula 311",
-      teacher: "Dra. Sofia L.",
-      assigned: true,
-      occupancy: "19/25",
-      occupancyPercent: 76,
-      schedule: "Lun - Jue, 16:00"
-    },
-    {
-      id: "CL-2024-033",
-      short: "D6",
-      subject: "Diseno de Sistemas",
-      room: "Aula 201",
-      teacher: "Sin asignar",
-      assigned: false,
-      occupancy: "10/30",
-      occupancyPercent: 34,
-      schedule: "Mie - Vie, 18:00"
-    },
-    {
-      id: "CL-2024-054",
-      short: "E7",
-      subject: "Economia Aplicada",
-      room: "Aula 118",
-      teacher: "Dr. Javier R.",
-      assigned: true,
-      occupancy: "21/28",
-      occupancyPercent: 75,
-      schedule: "Martes, 07:00"
-    },
-    {
-      id: "CL-2024-062",
-      short: "P8",
-      subject: "Psicologia Educativa",
-      room: "Aula 402",
-      teacher: "Dra. Laura M.",
-      assigned: true,
-      occupancy: "16/22",
-      occupancyPercent: 72,
-      schedule: "Jueves, 11:00"
-    }
-  ],
   coursesCatalog: [
     {
       code: "CL-2026-001",
@@ -96,10 +11,9 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "A",
-      modality: "Presencial",
-      seats: "20/30",
+      seats: "24/30",
       professor: "Dra. Helena Vance",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-002",
@@ -107,10 +21,9 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "B",
-      modality: "Hibrido",
-      seats: "18/28",
+      seats: "16/30",
       professor: "Dr. Ricardo Gomez",
-      publicationStatus: "Borrador"
+      publicationStatus: "Publicado"
     },
     {
       code: "CL-2026-003",
@@ -118,8 +31,7 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "C",
-      modality: "Virtual",
-      seats: "27/30",
+      seats: "18/28",
       professor: "Ing. Natalia Cardenas",
       publicationStatus: "Publicado"
     },
@@ -129,10 +41,9 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "A",
-      modality: "Presencial",
-      seats: "15/25",
+      seats: "21/25",
       professor: "MSc. Laura Medina",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-005",
@@ -140,10 +51,9 @@ export const directorDashboardMock = {
       department: "Sociales",
       career: "Derecho",
       section: "A",
-      modality: "Presencial",
       seats: "22/30",
       professor: "Dr. Luis Herrera",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-006",
@@ -151,10 +61,9 @@ export const directorDashboardMock = {
       department: "Salud",
       career: "Psicologia",
       section: "B",
-      modality: "Hibrido",
-      seats: "24/30",
+      seats: "11/30",
       professor: "Dra. Carolina Franco",
-      publicationStatus: "Borrador"
+      publicationStatus: "Publicado"
     },
     {
       code: "CL-2026-007",
@@ -162,10 +71,9 @@ export const directorDashboardMock = {
       department: "Economia",
       career: "Economia",
       section: "A",
-      modality: "Virtual",
       seats: "26/35",
       professor: "Dr. Javier R.",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-008",
@@ -173,8 +81,7 @@ export const directorDashboardMock = {
       department: "Administracion",
       career: "Administracion",
       section: "A",
-      modality: "Presencial",
-      seats: "19/30",
+      seats: "13/30",
       professor: "Mg. Andres Solis",
       publicationStatus: "Borrador"
     },
@@ -184,10 +91,9 @@ export const directorDashboardMock = {
       department: "Salud",
       career: "Medicina",
       section: "A",
-      modality: "Laboratorio",
-      seats: "16/22",
+      seats: "20/22",
       professor: "Dra. Maria Leon",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-010",
@@ -195,8 +101,7 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "D",
-      modality: "Hibrido",
-      seats: "18/25",
+      seats: "0/25",
       professor: "Ing. Samuel Vera",
       publicationStatus: "Borrador"
     },
@@ -206,10 +111,9 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "E",
-      modality: "Presencial",
-      seats: "21/30",
+      seats: "22/30",
       professor: "Dra. Laura M.",
-      publicationStatus: "Publicado"
+      publicationStatus: "Activo"
     },
     {
       code: "CL-2026-012",
@@ -217,64 +121,81 @@ export const directorDashboardMock = {
       department: "Ingenieria",
       career: "Ingenieria de Sistemas",
       section: "F",
-      modality: "Virtual",
-      seats: "23/32",
+      seats: "14/32",
       professor: "Dr. Marcos G.",
-      publicationStatus: "Borrador"
+      publicationStatus: "Publicado"
+    },
+    {
+      code: "CL-2026-013",
+      course: "Metodologia de Investigacion",
+      department: "Ingenieria",
+      career: "Ingenieria de Sistemas",
+      section: "A",
+      seats: "30/30",
+      professor: "Ing. David Castro",
+      publicationStatus: "Cerrado"
     }
   ],
   professorsRegistry: [
-    { id: "PR-001", name: "Helena Vance", department: "Ciencias", load: "4/5", status: "Disponible" },
-    { id: "PR-004", name: "Ricardo Gomez", department: "Ingenieria", load: "5/5", status: "Carga alta" },
-    { id: "PR-008", name: "Ana Martinez", department: "Estadistica", load: "3/5", status: "Disponible" },
-    { id: "PR-013", name: "Javier Lopez", department: "Ciencias", load: "4/5", status: "En clase" },
-    { id: "PR-017", name: "Laura Medina", department: "Psicologia", load: "2/5", status: "Disponible" },
-    { id: "PR-022", name: "Camilo Rojas", department: "Economia", load: "5/5", status: "Carga alta" },
-    { id: "PR-024", name: "Marta Naranjo", department: "Humanidades", load: "3/5", status: "Disponible" },
-    { id: "PR-029", name: "Diego Prieto", department: "Ingenieria", load: "4/5", status: "En clase" },
-    { id: "PR-033", name: "Sara Beltran", department: "Administracion", load: "2/5", status: "Disponible" },
-    { id: "PR-037", name: "Nicolas Fuentes", department: "Salud", load: "5/5", status: "Carga alta" }
+    { id: "PR-001", name: "Helena Vance", department: "Ciencias", load: 4 },
+    { id: "PR-004", name: "Ricardo Gomez", department: "Ingenieria", load: 5 },
+    { id: "PR-008", name: "Ana Martinez", department: "Estadistica", load: 3 },
+    { id: "PR-013", name: "Javier Lopez", department: "Ciencias", load: 4 },
+    { id: "PR-017", name: "Laura Medina", department: "Psicologia", load: 2 },
+    { id: "PR-022", name: "Camilo Rojas", department: "Economia", load: 5 },
+    { id: "PR-024", name: "Marta Naranjo", department: "Humanidades", load: 3 },
+    { id: "PR-029", name: "Diego Prieto", department: "Ingenieria", load: 4 },
+    { id: "PR-033", name: "Sara Beltran", department: "Administracion", load: 2 },
+    { id: "PR-037", name: "Nicolas Fuentes", department: "Salud", load: 5 }
   ],
   studentsRegistry: [
-    { id: "20230014", name: "Sofia Perez", program: "Ingenieria", semester: 6, gpa: 4.4, risk: "Bajo" },
-    { id: "20230017", name: "Juan Mendez", program: "Arquitectura", semester: 5, gpa: 4.1, risk: "Bajo" },
-    { id: "20230038", name: "Laura Castro", program: "Medicina", semester: 8, gpa: 3.9, risk: "Medio" },
-    { id: "20230049", name: "Diego Rios", program: "Derecho", semester: 4, gpa: 4.0, risk: "Bajo" },
-    { id: "20230052", name: "Angela Mora", program: "Psicologia", semester: 3, gpa: 3.2, risk: "Alto" },
-    { id: "20230061", name: "Felipe Aguirre", program: "Economia", semester: 7, gpa: 3.6, risk: "Medio" },
-    { id: "20230072", name: "Natalia Garzon", program: "Administracion", semester: 2, gpa: 4.5, risk: "Bajo" },
-    { id: "20230088", name: "Samuel Vera", program: "Ingenieria", semester: 9, gpa: 3.1, risk: "Alto" },
-    { id: "20230094", name: "Maria Leon", program: "Biologia", semester: 1, gpa: 4.2, risk: "Bajo" },
-    { id: "20230103", name: "Andres Vivas", program: "Matematicas", semester: 6, gpa: 3.7, risk: "Medio" },
-    { id: "20230111", name: "Diana Solis", program: "Trabajo Social", semester: 4, gpa: 4.3, risk: "Bajo" },
-    { id: "20230125", name: "Mateo Prieto", program: "Contaduria", semester: 7, gpa: 3.4, risk: "Medio" }
+    { id: "20230014", name: "Sofia Perez", program: "Ingenieria", semester: 6, courseGrades: [94, 88, 91, 96, 89] },
+    { id: "20230017", name: "Juan Mendez", program: "Arquitectura", semester: 5, courseGrades: [86, 79, 84, 88] },
+    { id: "20230038", name: "Laura Castro", program: "Medicina", semester: 8, courseGrades: [75, 83, 78, 81, 74] },
+    { id: "20230049", name: "Diego Rios", program: "Derecho", semester: 4, courseGrades: [80, 77, 85, 82] },
+    { id: "20230052", name: "Angela Mora", program: "Psicologia", semester: 3, courseGrades: [62, 70, 68, 65] },
+    { id: "20230061", name: "Felipe Aguirre", program: "Economia", semester: 7, courseGrades: [72, 76, 69, 74, 71] },
+    { id: "20230072", name: "Natalia Garzon", program: "Administracion", semester: 2, courseGrades: [98, 92, 95, 90] },
+    { id: "20230088", name: "Samuel Vera", program: "Ingenieria", semester: 9, courseGrades: [58, 64, 61, 55, 67] },
+    { id: "20230094", name: "Maria Leon", program: "Biologia", semester: 1, courseGrades: [84, 86, 82, 88] },
+    { id: "20230103", name: "Andres Vivas", program: "Matematicas", semester: 6, courseGrades: [73, 71, 76, 79] },
+    { id: "20230111", name: "Diana Solis", program: "Trabajo Social", semester: 4, courseGrades: [87, 89, 85, 90] },
+    { id: "20230125", name: "Mateo Prieto", program: "Contaduria", semester: 7, courseGrades: [66, 70, 64, 68] }
   ],
-  reportsRegistry: [
-    { id: "REP-001", name: "Ocupacion por Facultad", period: "2026-1", owner: "Planeacion", status: "Publicado" },
-    { id: "REP-004", name: "Desercion por Programa", period: "2026-1", owner: "Bienestar", status: "Revision" },
-    { id: "REP-007", name: "Carga Docente", period: "2026-1", owner: "Coordinacion", status: "Publicado" },
-    { id: "REP-009", name: "Asistencia semanal", period: "Semana 07", owner: "Analitica", status: "Borrador" },
-    { id: "REP-012", name: "Riesgo academico", period: "2026-1", owner: "Consejeria", status: "Revision" },
-    { id: "REP-015", name: "Rendimiento por curso", period: "2026-1", owner: "Decanaturas", status: "Publicado" },
-    { id: "REP-019", name: "Estado de cupos", period: "2026-1", owner: "Registro", status: "Publicado" },
-    { id: "REP-021", name: "Tendencia matrículas", period: "Historico", owner: "Planeacion", status: "Borrador" }
+  reportRequests: [
+    {
+      id: "SOL-001",
+      studentName: "Sofia Perez",
+      requestType: "Certificacion de cursos",
+      requestedAt: "2026-02-10",
+      status: "Generado",
+      issuedAt: "2026-02-12",
+      downloadName: "certificacion-sol-001.pdf"
+    },
+    {
+      id: "SOL-002",
+      studentName: "Juan Mendez",
+      requestType: "Cierre de pensum",
+      requestedAt: "2026-02-13",
+      status: "En proceso",
+      issuedAt: "",
+      downloadName: ""
+    },
+    {
+      id: "SOL-003",
+      studentName: "Laura Castro",
+      requestType: "Certificacion de cursos",
+      requestedAt: "2026-02-15",
+      status: "Solicitado",
+      issuedAt: "",
+      downloadName: ""
+    }
   ],
   teacherAvailability: [
     { initials: "HV", name: "Helena Vance", speciality: "Fisica Aplicada", status: "Libre" },
     { initials: "RG", name: "Ricardo Gomez", speciality: "Matematicas", status: "En clase" },
     { initials: "AM", name: "Ana Martinez", speciality: "Estadistica", status: "Ocupado" },
     { initials: "JL", name: "Javier Lopez", speciality: "Ciencias", status: "Libre" }
-  ],
-  enrollmentOverview: [
-    { icon: "person_add", label: "Nuevos inscritos", value: "128", progress: 65, tone: "sky" },
-    { icon: "check_circle", label: "Asistencia promedio", value: "96%", progress: 96, tone: "emerald" },
-    { icon: "warning", label: "Riesgo academico", value: "15", progress: 15, tone: "rose" }
-  ],
-  recentEnrollments: [
-    { initials: "SP", name: "Sofia Perez", program: "Ingenieria" },
-    { initials: "JM", name: "Juan Mendez", program: "Arquitectura" },
-    { initials: "LC", name: "Laura Castro", program: "Medicina" },
-    { initials: "DR", name: "Diego Rios", program: "Derecho" }
   ],
   teachers: [
     { id: "hv", name: "Helena Vance", speciality: "Doctorado en Fisica Aplicada", status: "Disponible" },
