@@ -56,7 +56,8 @@ npm install
 npm run dev
 ```
 
-`VITE_API_BASE_URL` por defecto apunta a `http://localhost:5055`.
+`VITE_API_BASE_URL` en `src/Web/procesos-academicos-web/.env.example` apunta a `https://procesosacademicos.onrender.com`.
+Si quieres usar backend local, cambia ese valor a `http://localhost:5055` en tu `.env`.
 
 ## Notas importantes
 

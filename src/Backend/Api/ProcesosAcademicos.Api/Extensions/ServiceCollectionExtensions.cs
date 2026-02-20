@@ -11,7 +11,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApiCors(this IServiceCollection services, IConfiguration configuration)
     {
-        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        var allowedOrigins = GetAllowedOrigins(configuration);
 
         services.AddCors(options =>
         {
@@ -91,6 +91,26 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    private static string[] GetAllowedOrigins(IConfiguration configuration)
+    {
+        var sectionOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        var rawOrigins = configuration["Cors:AllowedOrigins"];
+
+        var combinedOrigins = sectionOrigins.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(rawOrigins))
+        {
+            combinedOrigins = combinedOrigins.Concat(
+                rawOrigins.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+
+        return combinedOrigins
+            .Select(origin => origin.Trim())
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Select(origin => origin.TrimEnd('/'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }
 

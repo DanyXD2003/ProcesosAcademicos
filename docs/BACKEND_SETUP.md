@@ -84,6 +84,7 @@ Orígenes configurados en `Cors:AllowedOrigins`:
 - `https://procesos-academicos.vercel.app`
 
 Frontend usa `VITE_API_BASE_URL` (ver `src/Web/procesos-academicos-web/.env.example`).
+Para desarrollo local con API local, usa `VITE_API_BASE_URL=http://localhost:5055` en tu `.env`.
 
 ## 7) Estrategia SQL
 
