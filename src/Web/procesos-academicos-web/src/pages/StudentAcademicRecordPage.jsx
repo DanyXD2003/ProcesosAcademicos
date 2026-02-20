@@ -1,30 +1,40 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getStudentSidebarItems } from "../navigation/sidebarItems";
 import { appPaths, withPage } from "../router/paths";
 
 const PAGE_SIZE = 6;
 
 export default function StudentAcademicRecordPage() {
-  const { profile, studentCareer, studentHistory } = useAcademicDemo();
+  const { getStudentHistoryPage, profile, studentCareer } = useAcademicDemo();
+  const [page, setPage] = useState(1);
 
   if (!studentCareer) {
     return <Navigate replace to={withPage(appPaths.dashboard.student)} />;
   }
 
-  const { page, totalPages, setPage } = usePaginationQuery(studentHistory.length, PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const rows = studentHistory.slice(start, start + PAGE_SIZE);
+  const pagedHistory = getStudentHistoryPage({ page, pageSize: PAGE_SIZE });
+  const rows = pagedHistory.items;
+  const totalPages = pagedHistory.pagination.totalPages;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   return (
     <DashboardLayout
       actions={
-        <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
-          Descargar certificacion de cursos
+        <button
+          className="cursor-not-allowed rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 opacity-80"
+          disabled
+          title="Proximamente"
+          type="button"
+        >
+          Descargar certificacion de cursos (Proximamente)
         </button>
       }
       navItems={getStudentSidebarItems()}

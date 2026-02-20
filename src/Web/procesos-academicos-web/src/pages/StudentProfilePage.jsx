@@ -15,8 +15,13 @@ export default function StudentProfilePage() {
   return (
     <DashboardLayout
       actions={
-        <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
-          Editar perfil
+        <button
+          className="cursor-not-allowed rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 opacity-80"
+          disabled
+          title="Proximamente"
+          type="button"
+        >
+          Editar perfil (Proximamente)
         </button>
       }
       navItems={getStudentSidebarItems()}

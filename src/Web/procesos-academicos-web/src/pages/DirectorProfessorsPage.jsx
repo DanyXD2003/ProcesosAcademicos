@@ -1,27 +1,42 @@
+import { useEffect, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
 export default function DirectorProfessorsPage() {
-  const { directorProfile, directorProfessors } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(directorProfessors.length, PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const professors = directorProfessors.slice(start, start + PAGE_SIZE);
+  const { directorProfile, getDirectorProfessorsPage } = useAcademicDemo();
+  const [page, setPage] = useState(1);
+  const pagedProfessors = getDirectorProfessorsPage({ page, pageSize: PAGE_SIZE });
+  const professors = pagedProfessors.items;
+  const totalPages = pagedProfessors.pagination.totalPages;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   return (
     <DashboardLayout
       actions={
         <>
-          <button className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-            Importar hoja
+          <button
+            className="cursor-not-allowed rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-400 opacity-80"
+            disabled
+            title="Proximamente"
+            type="button"
+          >
+            Importar hoja (Proximamente)
           </button>
-          <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
-            Nuevo profesor
+          <button
+            className="cursor-not-allowed rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 opacity-80"
+            disabled
+            title="Proximamente"
+            type="button"
+          >
+            Nuevo profesor (Proximamente)
           </button>
         </>
       }
@@ -50,30 +65,39 @@ export default function DirectorProfessorsPage() {
             </thead>
             <tbody>
               {professors.map((professor) => {
-                const percent = Math.min(100, Math.round((professor.load / 5) * 100));
+                const loadAssigned = professor.loadAssigned ?? professor.load ?? 0;
+                const loadMax = professor.loadMax && professor.loadMax > 0 ? professor.loadMax : 1;
+                const loadPercent = Math.max(0, (loadAssigned / loadMax) * 100);
+                const percent = Math.min(100, Math.round(loadPercent));
+                const barColorClass = loadPercent >= 100 ? "bg-rose-400" : loadPercent >= 80 ? "bg-amber-400" : "bg-emerald-400";
 
                 return (
-                  <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={professor.id}>
-                    <td className="px-3 py-3 font-semibold text-white">{professor.id}</td>
+                  <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={professor.professorId}>
+                    <td className="px-3 py-3 font-semibold text-white">{professor.professorCode ?? professor.code ?? professor.professorId}</td>
                     <td className="px-3 py-3">{professor.name}</td>
                     <td className="px-3 py-3 text-slate-300">{professor.department}</td>
                     <td className="px-3 py-3">
                       <div className="w-44">
                         <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
-                          <span>{professor.load}/5 cursos</span>
+                          <span>{loadAssigned}/{loadMax} cursos</span>
                           <span>{percent}%</span>
                         </div>
                         <div className="h-2 rounded-full bg-slate-800">
                           <div
-                            className={`h-full rounded-full ${professor.load >= 5 ? "bg-rose-400" : professor.load >= 4 ? "bg-amber-400" : "bg-emerald-400"}`}
+                            className={`h-full rounded-full ${barColorClass}`}
                             style={{ width: `${percent}%` }}
                           />
                         </div>
                       </div>
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <button className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-                        Ver detalle
+                      <button
+                        className="cursor-not-allowed rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 opacity-80"
+                        disabled
+                        title="Proximamente"
+                        type="button"
+                      >
+                        Ver detalle (Proximamente)
                       </button>
                     </td>
                   </tr>

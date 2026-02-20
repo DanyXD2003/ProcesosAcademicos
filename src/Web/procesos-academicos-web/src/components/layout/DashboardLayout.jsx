@@ -10,6 +10,8 @@ export default function DashboardLayout({
   subtitle,
   actions,
   searchPlaceholder,
+  searchValue,
+  onSearchChange,
   children
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,7 +31,9 @@ export default function DashboardLayout({
           <TopHeader
             actions={actions}
             onMenuOpen={() => setSidebarOpen(true)}
+            onSearchChange={onSearchChange}
             searchPlaceholder={searchPlaceholder}
+            searchValue={searchValue}
             subtitle={subtitle}
             title={title}
           />

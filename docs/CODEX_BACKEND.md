@@ -67,6 +67,7 @@ Entidades minimas:
 - Career
 - StudentProfile
 - ProfessorProfile
+- DirectorProfile
 - Course (catalogo base)
 - CourseOffering (instancia por periodo)
 - CurriculumVersion
@@ -112,12 +113,14 @@ Estructura sugerida:
 Casos minimos por modulo:
 - Auth:
   - login, refresh, logout, me
+  - `CurrentUserDto` con `roleCode` (canonico) y `roleLabel` (presentacion)
 - Student:
-  - profile, career-enrollment, dashboard, available courses, active courses, enroll por `offeringId`, academic-record, report-request (retorna descarga inmediata), curriculum-progress
+  - catalog/careers, profile, career-enrollment, dashboard, available courses, active courses, enroll por `offeringId`, academic-record, report-request (retorna descarga inmediata), curriculum-progress
+  - en `career-enrollment`, si la carrera no tiene version de pensum activa debe retornar `CAREER_WITHOUT_ACTIVE_CURRICULUM`
 - Professor:
   - dashboard, classes, class-students (classId == courseOfferingId), save draft grades, publish grades, close class, students summary
 - Director:
-  - dashboard, courses list/create/publish/activate/close/assign-professor, professors list, students list, report-requests list (solo lectura), teacher-availability, curriculum-versions, curriculum-assignment, course-equivalences
+  - catalog/careers, catalog/base-courses, dashboard, courses list/create/publish/activate/close/assign-professor, professors list, students list, report-requests list (solo lectura), teacher-availability, curriculum-versions, curriculum-assignment, course-equivalences
 
 Criterio de salida:
 - Handlers y contratos compilando, desacoplados de persistencia concreta.
@@ -148,11 +151,16 @@ Acciones:
 
 Constraints minimos obligatorios:
 - `UNIQUE(student_id, course_offering_id)` en enrollments
+- `UNIQUE(course_offering_id, student_id)` en grade_entries
+- `UNIQUE(offering_code)` en course_offerings
 - `CHECK grade BETWEEN 0 AND 100` en notas
+- `CHECK(seats_total > 0)`
 - `CHECK seats_taken <= seats_total`
 - `UNIQUE(career_id, version_code)` en curriculum_versions
 - asignacion unica activa de curriculum por estudiante
 - `CHECK(source_course_id <> target_course_id)` en equivalencias
+- unicidad bidireccional activa de equivalencias con indice funcional `least/greatest` + `is_active = true`
+- `CHECK(legacy_imported = true OR issued_at is not null)` en report_requests
 
 Criterio de salida:
 - Infraestructura persiste correctamente y respeta invariantes de DB.
@@ -165,7 +173,7 @@ Objetivo:
 - Generar esquema evolutivo reproducible.
 
 Orden recomendado:
-1. Base de seguridad y perfiles (`users`, `roles`, `careers`, `students`, `professors`)
+1. Base de seguridad y perfiles (`users`, `roles`, `careers`, `students`, `professors`, `directors`)
 2. Cursos y ofertas (`courses`, `course_offerings`)
 3. Pensum por cohorte (`curriculum_versions`, `curriculum_courses`, `student_curriculum_assignments`)
 4. Inscripciones y notas (`enrollments`, `grade_entries`, `academic_records`)
@@ -191,6 +199,17 @@ Reglas:
 - Respuesta envelope estandar en exito y error.
 - Validacion de entrada consistente.
 - Mapeo de errores funcionales definidos en integracion.
+- Mantener DTOs canonicos del contrato; las diferencias de naming con frontend se resuelven via adapter en cliente.
+- Cuando una tabla UI muestre columna "ID", exponer tambien campo de codigo visible (`studentCode`, `professorCode`) ademas del `*Id` tecnico.
+- Mantener sincronizado el mapeo FE/BE de la Seccion 11.5 de integracion para DTOs de Estudiante/Profesor/Director.
+- `director/dashboard.teacherAvailability` y `director/teacher-availability` deben reutilizar misma query/servicio.
+- En endpoints no paginados de tipo lista, responder siempre `data.items`.
+- En endpoints paginados, considerar `meta.pagination` como fuente de verdad; el cliente no debe aplicar doble paginacion sobre `data.items` ya paginados.
+- La autorizacion debe evaluarse por `roleCode` (no por `roleLabel`).
+- En `report_requests`, para registros nuevos `issuedAt` es obligatorio; `null` solo para legado previo.
+- `DirectorCourseDto` debe exponer `professorId` para preseleccion segura en UI de asignacion docente.
+- `DirectorCourseDto` debe exponer `gradesPublished` para control de cierre en tabla de cursos director.
+- `professor/classes/{classId}/grades/publish` solo aplica cuando la oferta esta `Activo`; en otro estado debe responder `CLASS_NOT_ACTIVE_FOR_GRADING`.
 
 Criterio de salida:
 - Endpoints MVP disponibles y consistentes con el documento de integracion.
@@ -208,12 +227,29 @@ Pruebas de dominio/aplicacion:
 
 Pruebas API/integracion:
 - Auth y autorizacion por rol
+- Envelope estandar consistente (`data/meta/errors`) en todos los endpoints, incluido `logout`
 - Enroll con carrera valida usando `offeringId`
 - Rechazo por cupo/carrera/duplicado
 - Flujo profesor (draft -> publish -> close)
 - Flujo director de cursos (create -> publish -> activate -> assign-professor -> close con bloqueo por notas)
 - Validar que `close` actualiza estado de oferta, cierre de inscripciones y consolidacion academica.
 - Flujo director de pensum/equivalencias
+- Cobertura de contrato: todo endpoint referencia DTOs definidos y codigos de error existentes
+- Consistencia de contrato: cada error funcional retorna HTTP status segun matriz documentada.
+- Paridad de payload: `GET /director/teacher-availability` coincide en estructura con `DirectorDashboardDto.teacherAvailability`.
+- Persistencia y unicidad de `offering_code` en `course_offerings`.
+- Rechazo de equivalencia duplicada bidireccional activa (`A-B` == `B-A`).
+- Rechazo de `capacity <= 0` con `INVALID_CAPACITY`.
+- Shape uniforme en listados no paginados (`data.items`) para `catalog/careers` y `teacher-availability`.
+- Contrato de DTO en disponibilidad docente: cada fila debe incluir `professorId`.
+- Contrato de DTO en director/professors: cada fila debe incluir `loadAssigned` y `loadMax` para eliminar hardcodes de UI.
+- Contrato de DTO en listados con columna "ID": `ProfessorStudentSummaryDto.studentCode`, `DirectorStudentDto.studentCode`, `DirectorProfessorDto.professorCode`.
+- Catalogos director disponibles para crear oferta (`catalog/careers` y `catalog/base-courses`).
+- En nuevas solicitudes de reporte, `issuedAt` persistido y no nulo (excepto filas `legacy_imported = true`).
+- `career-enrollment` falla con `CAREER_WITHOUT_ACTIVE_CURRICULUM` cuando la carrera no tiene `CurriculumVersion` activa.
+- Validar adapter FE/BE: fixtures de contrato cubren mapeos de naming en listas de Profesor/Director (ej: `studentId -> id`, `average0to100 -> average`, `loadAssigned -> load`).
+- Publicacion de notas rechaza estados distintos de `Activo` con `CLASS_NOT_ACTIVE_FOR_GRADING`.
+- `GET /director/courses` incluye `gradesPublished` por fila y la UI de director no depende de calculos locales para ese estado.
 
 Criterio de salida:
 - Suite minima verde en CI local.
@@ -253,6 +289,8 @@ Fase 6:
 4. No calcular pendientes por oferta anual.
 5. No omitir equivalencias en progreso academico.
 6. No usar `courseId` como identidad operativa de inscripcion; usar `courseOfferingId` (`offeringId` en endpoint).
+7. Todo DTO referenciado por endpoint debe existir en `docs/INTEGRACION_FRONT_BACK.md`.
+8. Todo error funcional declarado por endpoint debe existir en el catalogo de errores.
 
 ---
 

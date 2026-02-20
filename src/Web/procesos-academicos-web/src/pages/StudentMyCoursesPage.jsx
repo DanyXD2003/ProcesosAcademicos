@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
 import { getStudentSidebarItems } from "../navigation/sidebarItems";
 import { appPaths, withPage } from "../router/paths";
 
-function normalizeText(value) {
-  return value.toLowerCase().trim();
-}
+const AVAILABLE_PAGE_SIZE = 4;
+const ACTIVE_PAGE_SIZE = 4;
 
 function OfferingRow({ action, actionLabel, badgeClassName, badgeLabel, course }) {
   return (
@@ -44,7 +44,8 @@ function OfferingRow({ action, actionLabel, badgeClassName, badgeLabel, course }
 
 export default function StudentMyCoursesPage() {
   const {
-    availableOfferingsForEnrollment,
+    getStudentActiveOfferingsPage,
+    getStudentAvailableOfferingsPage,
     enrollStudentInOffering,
     pendingCurriculumCount,
     pendingCurriculumCourses,
@@ -53,32 +54,39 @@ export default function StudentMyCoursesPage() {
     studentCareer
   } = useAcademicDemo();
   const [searchTerm, setSearchTerm] = useState("");
+  const [availablePage, setAvailablePage] = useState(1);
+  const [activePage, setActivePage] = useState(1);
 
   if (!studentCareer) {
     return <Navigate replace to={withPage(appPaths.dashboard.student)} />;
   }
 
-  const filteredAvailableCourses = useMemo(() => {
-    const query = normalizeText(searchTerm);
-    if (!query) {
-      return availableOfferingsForEnrollment;
-    }
+  const availablePageData = getStudentAvailableOfferingsPage({
+    search: searchTerm,
+    page: availablePage,
+    pageSize: AVAILABLE_PAGE_SIZE
+  });
+  const activePageData = getStudentActiveOfferingsPage({
+    search: searchTerm,
+    page: activePage,
+    pageSize: ACTIVE_PAGE_SIZE
+  });
 
-    return availableOfferingsForEnrollment.filter((course) =>
-      normalizeText(`${course.offeringCode} ${course.baseCourseCode} ${course.course}`).includes(query)
-    );
-  }, [availableOfferingsForEnrollment, searchTerm]);
+  const availableTotalPages = availablePageData.pagination.totalPages;
+  const activeTotalPages = activePageData.pagination.totalPages;
 
-  const filteredActiveCourses = useMemo(() => {
-    const query = normalizeText(searchTerm);
-    if (!query) {
-      return studentActiveOfferings;
-    }
+  useEffect(() => {
+    setAvailablePage(1);
+    setActivePage(1);
+  }, [searchTerm]);
 
-    return studentActiveOfferings.filter((course) =>
-      normalizeText(`${course.offeringCode} ${course.baseCourseCode} ${course.course}`).includes(query)
-    );
-  }, [searchTerm, studentActiveOfferings]);
+  useEffect(() => {
+    setAvailablePage((current) => Math.max(1, Math.min(current, availableTotalPages)));
+  }, [availableTotalPages]);
+
+  useEffect(() => {
+    setActivePage((current) => Math.max(1, Math.min(current, activeTotalPages)));
+  }, [activeTotalPages]);
 
   return (
     <DashboardLayout
@@ -122,7 +130,11 @@ export default function StudentMyCoursesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard subtitle="Ofertas publicadas de tu carrera para el termino vigente" title="Cursos disponibles para inscribirse">
+      <SectionCard
+        right={<span className="text-xs text-slate-400">Page size: {AVAILABLE_PAGE_SIZE}</span>}
+        subtitle="Ofertas publicadas de tu carrera para el termino vigente"
+        title="Cursos disponibles para inscribirse"
+      >
         <label className="mb-4 block">
           <span className="mb-2 block text-xs uppercase tracking-[0.12em] text-slate-400">Busqueda</span>
           <input
@@ -135,8 +147,8 @@ export default function StudentMyCoursesPage() {
         </label>
 
         <div className="space-y-3">
-          {filteredAvailableCourses.length > 0 ? (
-            filteredAvailableCourses.map((course) => (
+          {availablePageData.items.length > 0 ? (
+            availablePageData.items.map((course) => (
               <OfferingRow
                 action={() => enrollStudentInOffering(course.offeringId)}
                 actionLabel="Inscribirme"
@@ -152,16 +164,20 @@ export default function StudentMyCoursesPage() {
             </p>
           )}
         </div>
+
+        <div className="mt-5 border-t border-slate-800 pt-4">
+          <PaginationControls onPageChange={setAvailablePage} page={availablePage} totalPages={availableTotalPages} />
+        </div>
       </SectionCard>
 
       <SectionCard
-        right={<span className="text-xs text-slate-400">Cursos en progreso del estudiante</span>}
+        right={<span className="text-xs text-slate-400">Page size: {ACTIVE_PAGE_SIZE}</span>}
         subtitle="Ofertas en las que ya estas inscrito"
         title="Mis cursos activos"
       >
         <div className="space-y-3">
-          {filteredActiveCourses.length > 0 ? (
-            filteredActiveCourses.map((course) => (
+          {activePageData.items.length > 0 ? (
+            activePageData.items.map((course) => (
               <OfferingRow
                 badgeClassName="bg-emerald-500/20 text-emerald-200"
                 badgeLabel="Activa"
@@ -174,6 +190,10 @@ export default function StudentMyCoursesPage() {
               Aun no tienes cursos activos.
             </p>
           )}
+        </div>
+
+        <div className="mt-5 border-t border-slate-800 pt-4">
+          <PaginationControls onPageChange={setActivePage} page={activePage} totalPages={activeTotalPages} />
         </div>
       </SectionCard>
     </DashboardLayout>

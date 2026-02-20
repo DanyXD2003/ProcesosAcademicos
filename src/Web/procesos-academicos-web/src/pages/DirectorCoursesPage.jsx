@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import AssignProfessorModal from "../components/director/AssignProfessorModal";
 import NewCourseModal from "../components/director/NewCourseModal";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
@@ -36,18 +35,28 @@ export default function DirectorCoursesPage() {
     currentTerm,
     directorCourses,
     directorProfile,
+    getDirectorCoursesPage,
     publishOffering,
     closeOffering,
     teachers
   } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(directorCourses.length, PAGE_SIZE);
+  const [page, setPage] = useState(1);
   const [newCourseModalOpen, setNewCourseModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
-
-  const start = (page - 1) * PAGE_SIZE;
-  const courses = directorCourses.slice(start, start + PAGE_SIZE);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [careerFilter, setCareerFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const pagedCourses = getDirectorCoursesPage({
+    page,
+    pageSize: PAGE_SIZE,
+    status: statusFilter,
+    careerId: careerFilter,
+    search: searchTerm
+  });
+  const courses = pagedCourses.items;
+  const totalPages = pagedCourses.pagination.totalPages;
 
   const selectedOffering = useMemo(
     () => directorCourses.find((item) => item.offeringId === selectedOfferingId) ?? null,
@@ -56,6 +65,14 @@ export default function DirectorCoursesPage() {
 
   const publishedCourses = directorCourses.filter((item) => item.status === "Publicado").length;
   const activeCourses = directorCourses.filter((item) => item.status === "Activo").length;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [careerFilter, searchTerm, statusFilter]);
 
   function openAssignModal(offering) {
     setSelectedOfferingId(offering.offeringId);
@@ -111,6 +128,48 @@ export default function DirectorCoursesPage() {
           subtitle="Acciones por oferta: publicar, activar, cerrar y asignar profesor"
           title="Catalogo de cursos"
         >
+          <div className="mb-4 grid gap-3 md:grid-cols-3">
+            <label>
+              <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Estado</span>
+              <select
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                onChange={(event) => setStatusFilter(event.target.value)}
+                value={statusFilter}
+              >
+                <option value="">Todos</option>
+                <option value="Borrador">Borrador</option>
+                <option value="Publicado">Publicado</option>
+                <option value="Activo">Activo</option>
+                <option value="Cerrado">Cerrado</option>
+              </select>
+            </label>
+            <label>
+              <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Carrera</span>
+              <select
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                onChange={(event) => setCareerFilter(event.target.value)}
+                value={careerFilter}
+              >
+                <option value="">Todas</option>
+                {careersOptions.map((career) => (
+                  <option key={career.id} value={career.id}>
+                    {career.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Busqueda</span>
+              <input
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Oferta, curso base o profesor"
+                type="text"
+                value={searchTerm}
+              />
+            </label>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
               <thead>

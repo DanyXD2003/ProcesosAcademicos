@@ -36,6 +36,21 @@ function average(values) {
   return (total / values.length).toFixed(1);
 }
 
+function gradeCompletionForOffering(offeringId, enrollmentRows, gradesByStudent = {}) {
+  const classEnrollments = enrollmentRows.filter((item) => item.offeringId === offeringId);
+  const total = classEnrollments.length;
+  const graded = classEnrollments.reduce((count, enrollment) => {
+    const grade = gradesByStudent[enrollment.studentId];
+    return Number.isFinite(grade) ? count + 1 : count;
+  }, 0);
+
+  return {
+    total,
+    graded,
+    missing: Math.max(total - graded, 0)
+  };
+}
+
 function nextRequestId(requests) {
   const max = requests.reduce((highest, item) => {
     const numeric = Number(`${item.id}`.replace(/\D/g, ""));
@@ -149,6 +164,48 @@ function statusTone(status) {
   }
 
   return "Cerrado";
+}
+
+function normalizeSearchTerm(value) {
+  return `${value ?? ""}`.toLowerCase().trim();
+}
+
+function matchesOfferingSearch(offering, query) {
+  if (!query) {
+    return true;
+  }
+
+  return normalizeSearchTerm(
+    `${offering.offeringCode} ${offering.baseCourseCode} ${offering.course} ${offering.career} ${offering.professor} ${offering.section} ${offering.term}`
+  ).includes(query);
+}
+
+function matchesPlainSearch(value, query) {
+  if (!query) {
+    return true;
+  }
+
+  return normalizeSearchTerm(value).includes(query);
+}
+
+function buildPagedResult(items, page, pageSize) {
+  const safePageSizeCandidate = Number(pageSize);
+  const safePageSize = Number.isFinite(safePageSizeCandidate) && safePageSizeCandidate > 0 ? Math.floor(safePageSizeCandidate) : 10;
+  const total = items.length;
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const safePageCandidate = Number(page);
+  const safePage = Number.isFinite(safePageCandidate) ? Math.min(Math.max(Math.floor(safePageCandidate), 1), totalPages) : 1;
+  const start = (safePage - 1) * safePageSize;
+
+  return {
+    items: items.slice(start, start + safePageSize),
+    pagination: {
+      page: safePage,
+      pageSize: safePageSize,
+      total,
+      totalPages
+    }
+  };
 }
 
 export function AcademicDemoProvider({ children }) {
@@ -350,6 +407,24 @@ export function AcademicDemoProvider({ children }) {
     studentCurriculum
   ]);
 
+  function getStudentAvailableOfferingsPage({ search = "", page = 1, pageSize = 10 } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? availableOfferingsForEnrollment.filter((offering) => matchesOfferingSearch(offering, query))
+      : availableOfferingsForEnrollment;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
+  function getStudentActiveOfferingsPage({ search = "", page = 1, pageSize = 10 } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? studentActiveOfferings.filter((offering) => matchesOfferingSearch(offering, query))
+      : studentActiveOfferings;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
   const studentHistory = useMemo(
     () =>
       academicRecords
@@ -379,6 +454,15 @@ export function AcademicDemoProvider({ children }) {
     return (total / studentHistory.length).toFixed(1);
   }, [studentHistory]);
 
+  function getStudentHistoryPage({ page = 1, pageSize = 10, search = "" } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? studentHistory.filter((row) => matchesPlainSearch(`${row.code} ${row.subject} ${row.period} ${row.status}`, query))
+      : studentHistory;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
   const professorClasses = useMemo(
     () =>
       courseOfferings
@@ -386,6 +470,7 @@ export function AcademicDemoProvider({ children }) {
         .map((offering) => {
           const classStudents = enrollments.filter((item) => item.offeringId === offering.id);
           const course = courseById.get(offering.courseId);
+          const gradeCompletion = gradeCompletionForOffering(offering.id, enrollments, gradeDrafts[offering.id] ?? {});
 
           return {
             id: offering.id,
@@ -396,11 +481,35 @@ export function AcademicDemoProvider({ children }) {
             term: offering.term,
             status: offering.status,
             students: classStudents.length,
-            gradesPublished: Boolean(gradePublications[offering.id])
+            gradesPublished: Boolean(gradePublications[offering.id]),
+            gradeCompletion
           };
         })
         .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode)),
-    [courseById, courseOfferings, enrollments, gradePublications]
+    [courseById, courseOfferings, enrollments, gradeDrafts, gradePublications]
+  );
+
+  function getProfessorClassesPage({ page = 1, pageSize = 10, status = "", search = "" } = {}) {
+    let filtered = professorClasses;
+    if (status) {
+      filtered = filtered.filter((item) => item.status === status);
+    }
+    const query = normalizeSearchTerm(search);
+    if (query) {
+      filtered = filtered.filter((item) =>
+        matchesPlainSearch(`${item.offeringCode} ${item.code} ${item.title} ${item.term} ${item.section}`, query)
+      );
+    }
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
+  const gradeCompletionByOfferingId = useMemo(
+    () =>
+      Object.fromEntries(
+        professorClasses.map((classItem) => [classItem.id, classItem.gradeCompletion ?? { total: 0, graded: 0, missing: 0 }])
+      ),
+    [professorClasses]
   );
 
   const professorClassStudents = useMemo(() => {
@@ -431,18 +540,10 @@ export function AcademicDemoProvider({ children }) {
     const activeCourses = professorClasses.filter((item) => item.status !== "Cerrado").length;
 
     const pendingGrades = professorClasses.reduce((count, classItem) => {
-      if (classItem.gradesPublished || classItem.status === "Cerrado") {
+      if (classItem.gradesPublished || classItem.status !== "Activo") {
         return count;
       }
-
-      const studentsInClass = professorClassStudents[classItem.id] ?? [];
-      const grades = gradeDrafts[classItem.id] ?? {};
-      const missing = studentsInClass.filter((student) => {
-        const grade = grades[student.id];
-        return !Number.isFinite(grade) || grade <= 0;
-      }).length;
-
-      return count + missing;
+      return count + (classItem.gradeCompletion?.missing ?? 0);
     }, 0);
 
     const studentsSet = new Set();
@@ -455,7 +556,7 @@ export function AcademicDemoProvider({ children }) {
       pendingGrades,
       students: studentsSet.size
     };
-  }, [gradeDrafts, professorClassStudents, professorClasses]);
+  }, [professorClassStudents, professorClasses]);
 
   const professorStudentsSummary = useMemo(() => {
     const grouped = new Map();
@@ -464,7 +565,8 @@ export function AcademicDemoProvider({ children }) {
       classStudents.forEach((student) => {
         if (!grouped.has(student.id)) {
           grouped.set(student.id, {
-            id: student.studentCode,
+            studentId: student.id,
+            studentCode: student.studentCode,
             name: student.name,
             career: student.career,
             approvedGrades: []
@@ -480,7 +582,10 @@ export function AcademicDemoProvider({ children }) {
 
     return Array.from(grouped.values())
       .map((item) => ({
-        id: item.id,
+        studentId: item.studentId,
+        studentCode: item.studentCode,
+        id: item.studentId,
+        code: item.studentCode,
         name: item.name,
         career: item.career,
         approvedAverage:
@@ -489,6 +594,17 @@ export function AcademicDemoProvider({ children }) {
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [gradeDrafts, professorClassStudents]);
 
+  function getProfessorStudentsSummaryPage({ page = 1, pageSize = 10, search = "" } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? professorStudentsSummary.filter((student) =>
+          matchesPlainSearch(`${student.studentCode} ${student.name} ${student.career} ${student.approvedAverage}`, query)
+        )
+      : professorStudentsSummary;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
   const directorCourses = useMemo(
     () =>
       courseOfferings
@@ -496,6 +612,22 @@ export function AcademicDemoProvider({ children }) {
         .sort((left, right) => left.offeringCode.localeCompare(right.offeringCode)),
     [courseOfferings, gradePublications]
   );
+
+  function getDirectorCoursesPage({ page = 1, pageSize = 10, status = "", careerId = "", search = "" } = {}) {
+    let filtered = directorCourses;
+    if (status) {
+      filtered = filtered.filter((course) => course.status === status);
+    }
+    if (careerId) {
+      filtered = filtered.filter((course) => course.careerId === careerId);
+    }
+    const query = normalizeSearchTerm(search);
+    if (query) {
+      filtered = filtered.filter((course) => matchesOfferingSearch(course, query));
+    }
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
 
   const directorStats = useMemo(() => {
     const activeClasses = courseOfferings.filter((offering) => offering.status === "Activo").length;
@@ -532,7 +664,7 @@ export function AcademicDemoProvider({ children }) {
   const directorProfessors = useMemo(() => {
     return professors
       .map((professor) => {
-        const load = courseOfferings.filter(
+        const loadAssigned = courseOfferings.filter(
           (offering) =>
             offering.professorId === professor.id &&
             offering.term === CURRENT_TERM &&
@@ -541,21 +673,42 @@ export function AcademicDemoProvider({ children }) {
 
         return {
           professorId: professor.id,
-          id: professor.code,
+          professorCode: professor.code,
+          id: professor.id,
+          code: professor.code,
           name: professor.fullName,
           department: professor.department,
-          load
+          loadAssigned,
+          loadMax: 5,
+          load: loadAssigned
         };
       })
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [courseOfferings, professors]);
+
+  function getDirectorProfessorsPage({ page = 1, pageSize = 10, search = "" } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? directorProfessors.filter((professor) =>
+          matchesPlainSearch(
+            `${professor.professorCode} ${professor.name} ${professor.department} ${professor.loadAssigned}/${professor.loadMax}`,
+            query
+          )
+        )
+      : directorProfessors;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
 
   const directorStudents = useMemo(() => {
     return students
       .map((student) => {
         const career = student.careerId ? careerById.get(student.careerId)?.name : "Sin carrera";
         return {
-          id: student.code,
+          studentId: student.id,
+          studentCode: student.code,
+          id: student.id,
+          code: student.code,
           name: student.fullName,
           program: career || "Sin carrera",
           semester: student.semester ?? "-",
@@ -564,6 +717,35 @@ export function AcademicDemoProvider({ children }) {
       })
       .sort((left, right) => left.name.localeCompare(right.name));
   }, [careerById, students]);
+
+  function getDirectorStudentsPage({ page = 1, pageSize = 10, search = "" } = {}) {
+    const query = normalizeSearchTerm(search);
+    const filtered = query
+      ? directorStudents.filter((student) =>
+          matchesPlainSearch(`${student.studentCode} ${student.name} ${student.program} ${student.semester} ${student.average}`, query)
+        )
+      : directorStudents;
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
+
+  function getDirectorReportRequestsPage({ page = 1, pageSize = 10, type = "", search = "" } = {}) {
+    let filtered = reportRequests;
+    if (type) {
+      filtered = filtered.filter((report) => report.requestType === type);
+    }
+    const query = normalizeSearchTerm(search);
+    if (query) {
+      filtered = filtered.filter((report) =>
+        matchesPlainSearch(
+          `${report.id} ${report.studentName} ${report.requestType} ${report.requestedAt} ${report.issuedAt ?? ""}`,
+          query
+        )
+      );
+    }
+
+    return buildPagedResult(filtered, page, pageSize);
+  }
 
   const teacherAvailability = useMemo(() => {
     return academicDomainMock.teacherAvailabilitySnapshots.map((snapshot) => {
@@ -576,6 +758,7 @@ export function AcademicDemoProvider({ children }) {
         .toUpperCase();
 
       return {
+        professorId: snapshot.professorId,
         initials: initials || "--",
         name: professor?.fullName ?? "Profesor sin nombre",
         speciality: professor?.speciality ?? "Sin especialidad",
@@ -587,11 +770,13 @@ export function AcademicDemoProvider({ children }) {
   const teachers = useMemo(() => {
     return professors
       .map((professor) => {
-        const load = directorProfessors.find((item) => item.professorId === professor.id)?.load ?? 0;
+        const loadAssigned = directorProfessors.find((item) => item.professorId === professor.id)?.loadAssigned ?? 0;
+        const loadMax = directorProfessors.find((item) => item.professorId === professor.id)?.loadMax ?? 5;
+        const loadPercent = loadMax > 0 ? (loadAssigned / loadMax) * 100 : 0;
         let status = "Disponible";
-        if (load >= 5) {
+        if (loadPercent >= 100) {
           status = "Carga alta";
-        } else if (load >= 4) {
+        } else if (loadPercent >= 80) {
           status = "Carga media";
         }
 
@@ -764,11 +949,27 @@ export function AcademicDemoProvider({ children }) {
 
   function publishClassGrades(offeringId) {
     const selectedOffering = courseOfferingsById.get(offeringId);
-    if (!selectedOffering || selectedOffering.status === "Cerrado" || gradePublications[offeringId]) {
-      return;
+    if (!selectedOffering) {
+      return { ok: false, code: "CLASS_NOT_FOUND" };
+    }
+
+    if (selectedOffering.status === "Cerrado") {
+      return { ok: false, code: "CLASS_ALREADY_CLOSED" };
+    }
+
+    if (gradePublications[offeringId]) {
+      return { ok: false, code: "GRADES_ALREADY_PUBLISHED" };
+    }
+
+    if (selectedOffering.status !== "Activo") {
+      return { ok: false, code: "CLASS_NOT_ACTIVE_FOR_GRADING" };
     }
 
     const draft = gradeDrafts[offeringId] ?? {};
+    const completion = gradeCompletionForOffering(offeringId, enrollments, draft);
+    if (completion.missing > 0) {
+      return { ok: false, code: "GRADES_INCOMPLETE" };
+    }
 
     setGradePublications((current) => ({
       ...current,
@@ -778,22 +979,7 @@ export function AcademicDemoProvider({ children }) {
       }
     }));
 
-    setCourseOfferings((current) =>
-      current.map((offering) => {
-        if (offering.id !== offeringId) {
-          return offering;
-        }
-
-        if (offering.status === "Publicado") {
-          return {
-            ...offering,
-            status: "Activo"
-          };
-        }
-
-        return offering;
-      })
-    );
+    return { ok: true };
   }
 
   function closeOfferingWithConsolidation(offeringId) {
@@ -805,6 +991,10 @@ export function AcademicDemoProvider({ children }) {
     }
 
     const classEnrollments = enrollments.filter((item) => item.offeringId === offeringId);
+    const publicationCompletion = gradeCompletionForOffering(offeringId, enrollments, publication.grades ?? {});
+    if (publicationCompletion.missing > 0) {
+      return false;
+    }
 
     setCourseOfferings((current) =>
       current.map((offering) =>
@@ -904,11 +1094,15 @@ export function AcademicDemoProvider({ children }) {
     const careerId = `${payload.careerId ?? ""}`.trim();
     const section = `${payload.section ?? "A"}`.trim() || "A";
     const term = `${payload.term ?? CURRENT_TERM}`.trim() || CURRENT_TERM;
-    const seatsTotal = Math.max(1, Number(payload.capacity) || 30);
+    const capacityCandidate = Number(payload.capacity);
+    if (!Number.isFinite(capacityCandidate) || capacityCandidate <= 0) {
+      return { ok: false, code: "INVALID_CAPACITY" };
+    }
+    const seatsTotal = Math.round(capacityCandidate);
     const professorId = `${payload.professorId ?? ""}`.trim() || null;
 
     if (!courseById.has(courseId) || !careerById.has(careerId)) {
-      return false;
+      return { ok: false, code: "COURSE_OR_CAREER_NOT_FOUND" };
     }
 
     const offeringCodeRaw = `${payload.offeringCode ?? ""}`.trim();
@@ -916,13 +1110,14 @@ export function AcademicDemoProvider({ children }) {
 
     const duplicateCode = courseOfferings.some((offering) => offering.offeringCode === offeringCode);
     if (duplicateCode) {
-      return false;
+      return { ok: false, code: "COURSE_OFFERING_CODE_ALREADY_EXISTS" };
     }
 
+    const offeringId = randomId("OFF");
     setCourseOfferings((current) => [
       ...current,
       {
-        id: randomId("OFF"),
+        id: offeringId,
         offeringCode,
         courseId,
         careerId,
@@ -935,7 +1130,7 @@ export function AcademicDemoProvider({ children }) {
       }
     ]);
 
-    return true;
+    return { ok: true, offeringId };
   }
 
   function createStudentRequest(type) {
@@ -977,9 +1172,12 @@ export function AcademicDemoProvider({ children }) {
     pendingCurriculumCount,
     studentActiveOfferings,
     studentActiveCourses: studentActiveOfferings,
+    getStudentActiveOfferingsPage,
     availableOfferingsForEnrollment,
     availableCoursesForEnrollment: availableOfferingsForEnrollment,
+    getStudentAvailableOfferingsPage,
     studentHistory,
+    getStudentHistoryPage,
     studentAverageGrade,
 
     careersCatalog,
@@ -992,20 +1190,27 @@ export function AcademicDemoProvider({ children }) {
     createStudentRequest,
 
     classGrades: gradeDrafts,
+    gradeCompletionByOfferingId,
     professorClasses,
     professorClassStudents,
     professorStats,
     professorStudentsSummary,
+    getProfessorClassesPage,
+    getProfessorStudentsSummaryPage,
     setDraftGrade,
     publishClassGrades,
     closeClass,
 
     directorCourses,
+    getDirectorCoursesPage,
     coursesCatalog: directorCourses,
     directorStats,
     directorCapacity,
     directorProfessors,
+    getDirectorProfessorsPage,
     directorStudents,
+    getDirectorStudentsPage,
+    getDirectorReportRequestsPage,
     teacherAvailability,
     teachers,
     publishOffering,

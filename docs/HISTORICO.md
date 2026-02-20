@@ -199,6 +199,29 @@ Que ya quedo claro para backend:
 - Estados de curso y solicitudes con emision automatica (sin estado visible en UI).
 - Datos minimos que cada pantalla necesita.
 - Identidad operativa por oferta (`courseOfferingId` / `offeringId`) y separacion de curso base vs oferta por periodo.
+- Se formaliza endpoint de catalogo de carreras para onboarding de estudiante sin carrera.
+- Se formaliza perfil directivo en modelo de dominio/DB para alinear claims y errores.
+- Se cierra restriccion de unicidad de notas por estudiante/oferta en el modelo relacional.
+- Se formaliza mapeo FE/BE por adapters para diferencias de naming entre UI y DTO canonico.
+- Se define disponibilidad docente con dashboard como fuente canonica y endpoint dedicado para refresco parcial.
+- Se aclara que la matriz Front->Endpoint cubre pantallas UI y no reemplaza la cobertura MVP completa.
+- Se formaliza persistencia y unicidad de `offeringCode` en `course_offerings`.
+- Se formaliza unicidad bidireccional de equivalencias activas (`A-B` == `B-A`).
+- Se uniforma envelope de listados no paginados con `data.items` y se fija autorizacion por `roleCode`.
+- Se habilitan catalogos para flujo de director (`catalog/careers` y `catalog/base-courses`) para creacion de ofertas.
+- `DirectorCourseDto` incorpora `professorId` para preseleccion segura en asignacion docente.
+- Se blinda `issued_at` en `report_requests` con regla de DB para nuevos registros (`legacy_imported = false`).
+- Se amplio el mapeo FE/BE para modulos de profesor y director, reduciendo ambiguedades de naming en integracion.
+- Se formalizo el error `CAREER_WITHOUT_ACTIVE_CURRICULUM` para `career-enrollment` sin pensum activo.
+- Se cierra coherencia de estados: profesor no puede publicar notas fuera de ofertas `Activo` y se formaliza `CLASS_NOT_ACTIVE_FOR_GRADING`.
+- Se documenta `gradesPublished` en `DirectorCourseDto` para que la tabla de cursos del director no dependa de inferencias locales.
+- Se deshabilitan controles UI sin accion real (busqueda global y botones de acciones pendientes) para evitar falsos positivos en QA.
+- Se cierra riesgo de doble paginacion en frontend al consumir listados backend-driven (`data.items` + `meta.pagination`).
+- Se elimina hardcode de carga docente maxima en UI; ahora la vista consume `loadAssigned/loadMax` del payload canonico.
+- Se alinea disponibilidad docente para incluir `professorId` en la simulacion frontend, preservando paridad de DTO.
+- Se elimina paginacion local duplicada en pantallas clave para consumir paginacion backend-driven sin segundo `slice`.
+- Se separa en UI el ID tecnico del codigo visible (`studentCode`/`professorCode`) para evitar confusiones al integrar UUIDs.
+- Se agrega validacion explicita de capacidad al crear ofertas (`INVALID_CAPACITY`) en lugar de correccion silenciosa.
 
 ---
 
@@ -214,6 +237,7 @@ Que ya quedo claro para backend:
 ## Registro de esta fase
 
 - Fecha de cierre documental: 2026-02-19
+- Ultima actualizacion documental: 2026-02-20
 - Tipo de cambio: Refactor funcional de experiencia por roles
 - Estado: Completado en frontend (modo prototipo visual)
 - Integracion backend: Pendiente de implementacion

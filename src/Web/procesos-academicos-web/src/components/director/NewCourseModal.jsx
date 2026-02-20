@@ -40,8 +40,23 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
   function handleSubmit(event) {
     event.preventDefault();
 
-    const created = onCreate(formState);
-    if (!created) {
+    const creationResult = onCreate(formState);
+    const normalizedResult =
+      typeof creationResult === "boolean"
+        ? { ok: creationResult }
+        : creationResult ?? { ok: false };
+
+    if (!normalizedResult.ok) {
+      if (normalizedResult.code === "INVALID_CAPACITY") {
+        setErrorMessage("La capacidad debe ser mayor que 0.");
+        return;
+      }
+
+      if (normalizedResult.code === "COURSE_OFFERING_CODE_ALREADY_EXISTS") {
+        setErrorMessage("El codigo de oferta ya existe. Usa un codigo distinto.");
+        return;
+      }
+
       setErrorMessage("No se pudo crear la oferta. Verifica codigo unico y campos obligatorios.");
       return;
     }

@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import StatCard from "../components/common/StatCard";
 import AssignProfessorModal from "../components/director/AssignProfessorModal";
 import NewCourseModal from "../components/director/NewCourseModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 4;
@@ -49,22 +48,27 @@ export default function DirectorDashboardPage() {
     directorCourses,
     directorProfile,
     directorStats,
+    getDirectorCoursesPage,
     teacherAvailability,
     teachers
   } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(directorCourses.length, PAGE_SIZE);
+  const [page, setPage] = useState(1);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [newCourseModalOpen, setNewCourseModalOpen] = useState(false);
-  const [selectedTeacherId, setSelectedTeacherId] = useState(teachers[0]?.id ?? "");
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
-
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const visibleClasses = directorCourses.slice(startIndex, startIndex + PAGE_SIZE);
+  const pagedClasses = getDirectorCoursesPage({ page, pageSize: PAGE_SIZE });
+  const visibleClasses = pagedClasses.items;
+  const totalPages = pagedClasses.pagination.totalPages;
 
   const selectedOffering = useMemo(
     () => directorCourses.find((item) => item.offeringId === selectedOfferingId) ?? null,
     [directorCourses, selectedOfferingId]
   );
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   const dashboardStats = [
     { icon: "group", label: "Total alumnos", value: `${directorStats.totalStudents}` },
@@ -75,7 +79,7 @@ export default function DirectorDashboardPage() {
 
   function openAssignModal(course) {
     setSelectedOfferingId(course.offeringId);
-    setSelectedTeacherId(course.professorId ?? teachers[0]?.id ?? "");
+    setSelectedTeacherId(course.professorId ?? "");
     setAssignModalOpen(true);
   }
 
@@ -193,7 +197,7 @@ export default function DirectorDashboardPage() {
             <h3 className="text-lg font-bold text-white">Disponibilidad docente</h3>
             <div className="mt-4 space-y-3">
               {teacherAvailability.map((teacher) => (
-                <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2" key={teacher.name}>
+                <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2" key={teacher.professorId}>
                   <div>
                     <p className="text-sm font-semibold text-white">{teacher.name}</p>
                     <p className="text-xs text-slate-400">{teacher.speciality}</p>

@@ -1,27 +1,42 @@
+import { useEffect, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 6;
 
 export default function DirectorStudentsPage() {
-  const { directorProfile, directorStudents } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(directorStudents.length, PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const students = directorStudents.slice(start, start + PAGE_SIZE);
+  const { directorProfile, getDirectorStudentsPage } = useAcademicDemo();
+  const [page, setPage] = useState(1);
+  const pagedStudents = getDirectorStudentsPage({ page, pageSize: PAGE_SIZE });
+  const students = pagedStudents.items;
+  const totalPages = pagedStudents.pagination.totalPages;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   return (
     <DashboardLayout
       actions={
         <>
-          <button className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800" type="button">
-            Exportar CSV
+          <button
+            className="cursor-not-allowed rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-400 opacity-80"
+            disabled
+            title="Proximamente"
+            type="button"
+          >
+            Exportar CSV (Proximamente)
           </button>
-          <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="button">
-            Enviar notificacion
+          <button
+            className="cursor-not-allowed rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 opacity-80"
+            disabled
+            title="Proximamente"
+            type="button"
+          >
+            Enviar notificacion (Proximamente)
           </button>
         </>
       }
@@ -50,8 +65,8 @@ export default function DirectorStudentsPage() {
             </thead>
             <tbody>
               {students.map((student) => (
-                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={student.id}>
-                  <td className="px-3 py-3 font-semibold text-white">{student.id}</td>
+                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={student.studentId}>
+                  <td className="px-3 py-3 font-semibold text-white">{student.studentCode ?? student.code ?? student.studentId}</td>
                   <td className="px-3 py-3">{student.name}</td>
                   <td className="px-3 py-3 text-slate-300">{student.program}</td>
                   <td className="px-3 py-3 text-slate-300">{student.semester}</td>

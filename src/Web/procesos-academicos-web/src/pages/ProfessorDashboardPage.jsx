@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import StatCard from "../components/common/StatCard";
 import AssignGradesModal from "../components/professor/AssignGradesModal";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getProfessorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 3;
@@ -30,7 +29,7 @@ function getClassProgress(students, grades) {
     return 0;
   }
 
-  const graded = students.filter((student) => Number.isFinite(grades?.[student.id]) && grades[student.id] > 0).length;
+  const graded = students.filter((student) => Number.isFinite(grades?.[student.id])).length;
   return Math.round((graded / students.length) * 100);
 }
 
@@ -38,6 +37,8 @@ export default function ProfessorDashboardPage() {
   const {
     classGrades,
     closeClass,
+    getProfessorClassesPage,
+    gradeCompletionByOfferingId,
     professorClassStudents,
     professorClasses,
     professorProfile,
@@ -46,11 +47,15 @@ export default function ProfessorDashboardPage() {
     setDraftGrade
   } = useAcademicDemo();
   const [selectedClassId, setSelectedClassId] = useState("");
-
-  const { page, totalPages, setPage } = usePaginationQuery(professorClasses.length, PAGE_SIZE);
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const currentClasses = professorClasses.slice(startIndex, startIndex + PAGE_SIZE);
+  const [page, setPage] = useState(1);
+  const pagedClasses = getProfessorClassesPage({ page, pageSize: PAGE_SIZE });
+  const currentClasses = pagedClasses.items;
+  const totalPages = pagedClasses.pagination.totalPages;
   const selectedClass = useMemo(() => professorClasses.find((course) => course.id === selectedClassId) ?? null, [professorClasses, selectedClassId]);
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   const stats = [
     { icon: "check_circle", label: "Cursos activos", value: `${professorStats.activeCourses}`, change: "En gestion", changeTone: "neutral" },
@@ -90,6 +95,12 @@ export default function ProfessorDashboardPage() {
             {currentClasses.map((course) => {
               const students = professorClassStudents[course.id] ?? [];
               const progress = getClassProgress(students, classGrades[course.id]);
+              const gradeCompletion = gradeCompletionByOfferingId[course.id] ?? { total: students.length, graded: 0, missing: students.length };
+              const canPublish =
+                course.status === "Activo" &&
+                !course.gradesPublished &&
+                course.status !== "Cerrado" &&
+                gradeCompletion.missing === 0;
 
               return (
                 <article className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5" key={course.id}>
@@ -115,6 +126,12 @@ export default function ProfessorDashboardPage() {
                       <p className="mt-1 text-sm text-slate-400">
                         {course.code} | {students.length} estudiantes | Termino {course.term}
                       </p>
+                      {course.status === "Publicado" ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-300">Pendiente activacion por Direccion</p>
+                      ) : null}
+                      {course.status === "Activo" && !course.gradesPublished && gradeCompletion.missing > 0 ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-300">Faltan notas por cargar ({gradeCompletion.missing})</p>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -127,7 +144,7 @@ export default function ProfessorDashboardPage() {
                       </button>
                       <button
                         className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-200 transition enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={course.gradesPublished || course.status === "Cerrado"}
+                        disabled={!canPublish}
                         onClick={() => publishClassGrades(course.id)}
                         type="button"
                       >

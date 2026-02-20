@@ -1,17 +1,22 @@
+import { useEffect, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getProfessorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
 export default function ProfessorStudentsPage() {
-  const { professorProfile, professorStudentsSummary } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(professorStudentsSummary.length, PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const students = professorStudentsSummary.slice(start, start + PAGE_SIZE);
+  const { getProfessorStudentsSummaryPage, professorProfile } = useAcademicDemo();
+  const [page, setPage] = useState(1);
+  const pagedStudents = getProfessorStudentsSummaryPage({ page, pageSize: PAGE_SIZE });
+  const students = pagedStudents.items;
+  const totalPages = pagedStudents.pagination.totalPages;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   return (
     <DashboardLayout
@@ -35,8 +40,8 @@ export default function ProfessorStudentsPage() {
             </thead>
             <tbody>
               {students.map((student) => (
-                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={student.id}>
-                  <td className="px-3 py-3 font-semibold text-white">{student.id}</td>
+                <tr className="border-b border-slate-800/70 text-sm text-slate-200" key={student.studentId}>
+                  <td className="px-3 py-3 font-semibold text-white">{student.studentCode}</td>
                   <td className="px-3 py-3">{student.name}</td>
                   <td className="px-3 py-3 text-slate-300">{student.career}</td>
                   <td className="px-3 py-3 text-slate-300">{student.approvedAverage}</td>

@@ -1,17 +1,22 @@
+import { useEffect, useState } from "react";
 import PaginationControls from "../components/common/PaginationControls";
 import SectionCard from "../components/domain/SectionCard";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { useAcademicDemo } from "../context/AcademicDemoContext";
-import usePaginationQuery from "../hooks/usePaginationQuery";
 import { getDirectorSidebarItems } from "../navigation/sidebarItems";
 
 const PAGE_SIZE = 5;
 
 export default function DirectorReportsPage() {
-  const { directorProfile, reportRequests } = useAcademicDemo();
-  const { page, totalPages, setPage } = usePaginationQuery(reportRequests.length, PAGE_SIZE);
-  const start = (page - 1) * PAGE_SIZE;
-  const reports = reportRequests.slice(start, start + PAGE_SIZE);
+  const { directorProfile, getDirectorReportRequestsPage } = useAcademicDemo();
+  const [page, setPage] = useState(1);
+  const pagedReports = getDirectorReportRequestsPage({ page, pageSize: PAGE_SIZE });
+  const reports = pagedReports.items;
+  const totalPages = pagedReports.pagination.totalPages;
+
+  useEffect(() => {
+    setPage((current) => Math.max(1, Math.min(current, totalPages)));
+  }, [totalPages]);
 
   return (
     <DashboardLayout

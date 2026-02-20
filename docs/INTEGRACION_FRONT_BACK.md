@@ -92,6 +92,10 @@ Para pasar a entorno real necesita:
 
 ### 3.2 Envelope estandar de respuesta
 
+Regla obligatoria:
+- Todas las respuestas HTTP de la API usan envelope `data/meta/errors`, incluyendo `logout`.
+- Los listados no paginados tambien usan `data.items` como contenedor estandar.
+
 Respuesta exitosa (comando o detalle):
 
 ```json
@@ -123,6 +127,21 @@ Respuesta paginada:
       "total": 42,
       "totalPages": 5
     }
+  },
+  "errors": []
+}
+```
+
+Respuesta de listado no paginado:
+
+```json
+{
+  "data": {
+    "items": []
+  },
+  "meta": {
+    "traceId": "a2b9a8efc24b4f52",
+    "timestamp": "2026-02-19T18:20:01Z"
   },
   "errors": []
 }
@@ -160,16 +179,18 @@ Respuesta con error:
 
 ### 4.1 Roles
 
-- `Estudiante`
-- `Profesor`
-- `Director`
+- `roleCode` canonico (DB/JWT): `ESTUDIANTE`, `PROFESOR`, `DIRECTOR`
+- `roleLabel` de presentacion (UI): `Estudiante`, `Profesor`, `Director`
+- Regla de normalizacion: `ESTUDIANTE <-> Estudiante`, `PROFESOR <-> Profesor`, `DIRECTOR <-> Director`
 
 ### 4.2 Claims minimas esperadas
 
 - `sub` (id usuario)
-- `role`
+- `roleCode`
+- `roleLabel`
 - `profileId` (student/professor/director)
 - `careerId` (solo cuando aplique)
+- Regla normativa: la autorizacion backend evalua `roleCode`; `roleLabel` es solo para presentacion.
 
 ### 4.3 Endpoints de auth (MVP)
 
@@ -188,7 +209,7 @@ Respuesta con error:
 #### `POST /api/v1/auth/logout`
 - Auth: Token valido
 - Request (`LogoutRequestDto`): `refreshToken` (opcional segun estrategia)
-- Response: confirmacion de cierre
+- Response (`LogoutResultDto`): confirmacion de cierre
 - Errores: `AUTH_INVALID_TOKEN`
 
 #### `GET /api/v1/auth/me`
@@ -203,7 +224,7 @@ Respuesta con error:
 | Rol | Pantalla | Accion frontend | Endpoint requerido |
 |---|---|---|---|
 | Estudiante | Login | Iniciar sesion | `POST /api/v1/auth/login` |
-| Estudiante | Dashboard (sin carrera) | Cargar carreras | `GET /api/v1/student/profile` + `GET /api/v1/student/dashboard` |
+| Estudiante | Dashboard (sin carrera) | Cargar carreras | `GET /api/v1/student/profile` + `GET /api/v1/catalog/careers` |
 | Estudiante | Dashboard (sin carrera) | Inscribirse a carrera | `POST /api/v1/student/career-enrollment` |
 | Estudiante | Dashboard | Ver metricas y cursos activos | `GET /api/v1/student/dashboard` |
 | Estudiante | Dashboard | Solicitar certificacion/cierre (con descarga inmediata) | `POST /api/v1/student/report-requests` |
@@ -221,6 +242,7 @@ Respuesta con error:
 | Director | Dashboard | Ver KPIs y capacidad | `GET /api/v1/director/dashboard` |
 | Director | Dashboard | Ver disponibilidad docente | `GET /api/v1/director/teacher-availability` |
 | Director | Cursos | Listar cursos | `GET /api/v1/director/courses` |
+| Director | Cursos | Cargar catalogos para crear oferta | `GET /api/v1/catalog/careers` + `GET /api/v1/catalog/base-courses` |
 | Director | Cursos | Crear curso borrador | `POST /api/v1/director/courses` |
 | Director | Cursos | Publicar curso | `POST /api/v1/director/courses/{offeringId}/publish` |
 | Director | Cursos | Activar curso publicado | `POST /api/v1/director/courses/{offeringId}/activate` |
@@ -229,6 +251,9 @@ Respuesta con error:
 | Director | Profesores | Ver directorio | `GET /api/v1/director/professors` |
 | Director | Estudiantes | Ver directorio | `GET /api/v1/director/students` |
 | Director | Reportes | Ver historial solicitudes (solo lectura) | `GET /api/v1/director/report-requests` |
+
+Nota de alcance:
+- Esta matriz cubre acciones por pantalla UI. La cobertura MVP completa (incluyendo auth tecnico, catalogos y gestion curricular) se define en la Seccion 6.
 
 ---
 
@@ -251,7 +276,7 @@ Respuesta con error:
 ### `POST /api/v1/auth/logout`
 - Auth: Token
 - Request: `LogoutRequestDto`
-- Response: `{ success: true }`
+- Response: `LogoutResultDto`
 - Errores: `AUTH_INVALID_TOKEN`
 
 ### `GET /api/v1/auth/me`
@@ -260,6 +285,12 @@ Respuesta con error:
 - Errores: `AUTH_INVALID_TOKEN`, `AUTH_TOKEN_EXPIRED`
 
 ## 6.2 Estudiante
+
+### `GET /api/v1/catalog/careers`
+- Auth: `Estudiante`, `Director`
+- Query: none
+- Response: `CareerOptionsListDto` (`data.items: CareerOptionDto[]`)
+- Errores: none funcionales relevantes
 
 ### `GET /api/v1/student/profile`
 - Auth: `Estudiante`
@@ -271,7 +302,7 @@ Respuesta con error:
 - Auth: `Estudiante`
 - Request: `StudentCareerEnrollmentRequestDto`
 - Response: `StudentCareerEnrollmentResultDto`
-- Errores: `CAREER_NOT_FOUND`, `STUDENT_ALREADY_HAS_CAREER`
+- Errores: `CAREER_NOT_FOUND`, `STUDENT_ALREADY_HAS_CAREER`, `CAREER_WITHOUT_ACTIVE_CURRICULUM`
 
 ### `GET /api/v1/student/dashboard`
 - Auth: `Estudiante`
@@ -347,7 +378,7 @@ Respuesta con error:
 - Nota: `classId` representa `courseOfferingId`.
 - Request: none
 - Response: `PublishGradesResultDto`
-- Errores: `CLASS_NOT_FOUND`, `GRADES_ALREADY_PUBLISHED`, `GRADES_INCOMPLETE`
+- Errores: `CLASS_NOT_FOUND`, `CLASS_NOT_ACTIVE_FOR_GRADING`, `CLASS_ALREADY_CLOSED`, `GRADES_ALREADY_PUBLISHED`, `GRADES_INCOMPLETE`
 
 ### `POST /api/v1/professor/classes/{classId}/close`
 - Auth: `Profesor`
@@ -364,6 +395,12 @@ Respuesta con error:
 
 ## 6.4 Director
 
+### `GET /api/v1/catalog/base-courses`
+- Auth: `Director`
+- Query: `careerId?`
+- Response: `BaseCourseOptionsListDto` (`data.items: BaseCourseOptionDto[]`)
+- Errores: none funcionales relevantes
+
 ### `GET /api/v1/director/dashboard`
 - Auth: `Director`
 - Response: `DirectorDashboardDto`
@@ -372,7 +409,7 @@ Respuesta con error:
 ### `GET /api/v1/director/courses`
 - Auth: `Director`
 - Query: `status?`, `careerId?`, `page`, `pageSize`
-- Response: paginado `DirectorCourseDto`
+- Response: paginado `DirectorCourseDto` (incluye `gradesPublished` por fila)
 - Errores: none funcionales relevantes
 
 ### `POST /api/v1/director/courses`
@@ -424,7 +461,8 @@ Respuesta con error:
 ### `GET /api/v1/director/teacher-availability`
 - Auth: `Director`
 - Query: none
-- Response: array `TeacherAvailabilityDto`
+- Response: `TeacherAvailabilityListDto` (`data.items: TeacherAvailabilityDto[]`)
+- Nota normativa: la fuente canonica es `DirectorDashboardDto.teacherAvailability`; este endpoint reutiliza la misma estructura y se usa para refresco parcial sin cambiar semantica.
 
 ### `GET /api/v1/director/curriculum-versions`
 - Auth: `Director`
@@ -501,6 +539,7 @@ Respuesta con error:
 - Cada estudiante queda asignado a una version de pensum (`CurriculumVersion`) segun cohorte.
 - Los pendientes se calculan contra esa version de pensum.
 - Cambios de malla futuros no cambian automaticamente la version del estudiante.
+- En `career-enrollment` debe existir una `CurriculumVersion` activa para la carrera; si no existe, responder `CAREER_WITHOUT_ACTIVE_CURRICULUM`.
 
 6. Calculo academico de pendientes:
 - Un estudiante completa cursos base del pensum, no ofertas puntuales de un anio.
@@ -510,6 +549,7 @@ Respuesta con error:
 7. Equivalencias de cursos:
 - Si cambia codigo o nombre de materia, se usa `CourseEquivalence`.
 - Las equivalencias se consideran en el calculo de pendientes y progreso.
+- Regla de unicidad activa: para el mismo par de cursos no se permiten duplicados activos en ningun sentido (`A-B` y `B-A` se consideran equivalentes).
 
 8. Ciclo de curso:
 - `Borrador -> Publicado -> Activo -> Cerrado`.
@@ -517,6 +557,7 @@ Respuesta con error:
 
 9. Flujo profesor de notas:
 - `draft` editable solo antes de publicar.
+- `publish` solo permitido cuando la oferta esta en estado `Activo`; si no, `CLASS_NOT_ACTIVE_FOR_GRADING`.
 - `publish` bloquea edicion.
 - `close` solo despues de `publish`.
 
@@ -530,6 +571,12 @@ Respuesta con error:
 - La respuesta de solicitud del estudiante retorna enlace temporal para descarga inmediata.
 - En UI no se expone estado operativo; solo registro de solicitud/emision.
 - La tabla del director es historica y de solo lectura.
+- Para nuevas solicitudes, `issuedAt`/`issued_at` es obligatorio; `null` solo aplica a datos legacy migrados.
+- A nivel de persistencia, un registro nuevo debe cumplir `issued_at is not null`; excepcion solo si `legacy_imported = true`.
+
+12. Validacion de capacidad:
+- `seatsTotal` debe ser mayor que 0.
+- Valores invalidos deben responder `INVALID_CAPACITY`.
 
 ---
 
@@ -540,6 +587,7 @@ Entidades principales:
 - `Role`
 - `StudentProfile`
 - `ProfessorProfile`
+- `DirectorProfile`
 - `Career`
 - `Course`
 - `CourseOffering`
@@ -556,6 +604,7 @@ Entidades principales:
 Relaciones clave:
 - Un `User` puede tener uno o varios `Role`.
 - Un `StudentProfile` pertenece a un `User` y puede tener una `Career` activa.
+- Un `DirectorProfile` pertenece a un `User`.
 - Un `Course` puede ofertarse muchas veces (`CourseOffering`) por periodo/seccion.
 - `CurriculumVersion` versiona el pensum por carrera/cohorte.
 - `CurriculumCourse` vincula una version de pensum con cursos requeridos.
@@ -612,6 +661,13 @@ Relaciones clave:
 - `full_name varchar(160) not null`
 - `department varchar(120) not null`
 
+### `directors`
+- `id uuid pk`
+- `user_id uuid unique fk users(id)`
+- `director_code varchar(30) unique not null`
+- `full_name varchar(160) not null`
+- `campus varchar(120) null`
+
 ### `courses`
 - `id uuid pk`
 - `code varchar(30) unique not null`
@@ -621,6 +677,7 @@ Relaciones clave:
 
 ### `course_offerings`
 - `id uuid pk`
+- `offering_code varchar(30) not null`
 - `course_id uuid fk courses(id)`
 - `career_id uuid fk careers(id)`
 - `professor_id uuid null fk professors(id)`
@@ -698,7 +755,8 @@ Relaciones clave:
 - `student_id uuid fk students(id)`
 - `request_type varchar(40) not null` (`Certificacion de cursos`, `Cierre de pensum`)
 - `requested_at timestamptz not null`
-- `issued_at timestamptz null`
+- `issued_at timestamptz null` (obligatorio para nuevos registros; nullable solo para datos legacy previos)
+- `legacy_imported boolean not null default false` (marca registros migrados/legacy)
 - `download_url varchar(512) null` (URL temporal para descarga inmediata del estudiante; no visible en tabla director)
 
 ### `teacher_availability_snapshots`
@@ -711,11 +769,16 @@ Relaciones clave:
 ## 10.2 Constraints e indices minimos
 
 - `unique(student_id, course_offering_id)` en `enrollments`.
+- `unique(offering_code)` en `course_offerings`.
 - `unique(career_id, version_code)` en `curriculum_versions`.
 - `unique(student_id) filter (is_active = true)` en `student_curriculum_assignments`.
 - `check(source_course_id <> target_course_id)` en `course_equivalences`.
+- `unique` bidireccional activa en equivalencias: `unique(least(source_course_id,target_course_id), greatest(source_course_id,target_course_id)) filter (is_active = true)`.
+- `unique(course_offering_id, student_id)` en `grade_entries`.
 - `check (draft_grade between 0 and 100)` y `check (published_grade between 0 and 100)`.
+- `check (seats_total > 0)`.
 - `check (seats_taken >= 0 and seats_taken <= seats_total)`.
+- `check (legacy_imported = true or issued_at is not null)` en `report_requests`.
 - Indices sugeridos:
   - `course_offerings(status)`
   - `course_offerings(career_id, status)`
@@ -739,6 +802,16 @@ Relaciones clave:
 - `usernameOrEmail: string`
 - `password: string`
 
+### `RefreshTokenRequestDto`
+- `refreshToken: string`
+
+### `LogoutRequestDto`
+- `refreshToken?: string`
+
+### `LogoutResultDto`
+- `success: true`
+- `loggedOutAt: string (ISO-8601 UTC)`
+
 ### `AuthSessionDto`
 - `accessToken: string`
 - `refreshToken: string`
@@ -747,7 +820,8 @@ Relaciones clave:
 
 ### `CurrentUserDto`
 - `userId: string`
-- `role: string`
+- `roleCode: ESTUDIANTE | PROFESOR | DIRECTOR`
+- `roleLabel: Estudiante | Profesor | Director`
 - `displayName: string`
 - `profileId: string`
 - `careerId: string?`
@@ -764,6 +838,34 @@ Relaciones clave:
 - `semester`
 - `email`
 - `phone`
+
+### `CareerOptionDto`
+- `careerId`
+- `careerCode`
+- `careerName`
+- `isActive`
+
+### `CareerOptionsListDto`
+- `items: CareerOptionDto[]`
+
+### `BaseCourseOptionDto`
+- `courseId`
+- `courseCode`
+- `courseName`
+- `department`
+
+### `BaseCourseOptionsListDto`
+- `items: BaseCourseOptionDto[]`
+
+### `StudentCareerEnrollmentRequestDto`
+- `careerId`
+
+### `StudentCareerEnrollmentResultDto`
+- `studentId`
+- `careerId`
+- `careerName`
+- `curriculumVersionId`
+- `enrolledAt`
 
 ### `StudentDashboardDto`
 - `averageGrade`
@@ -827,6 +929,13 @@ Relaciones clave:
 - `issuedAt`
 - `downloadUrl`
 
+### `StudentEnrollmentResultDto`
+- `enrollmentId`
+- `studentId`
+- `courseOfferingId`
+- `status`
+- `enrolledAt`
+
 ## 11.3 Professor DTOs
 
 ### `ProfessorDashboardDto`
@@ -875,6 +984,7 @@ Relaciones clave:
 
 ### `ProfessorStudentSummaryDto`
 - `studentId`
+- `studentCode`
 - `name`
 - `career`
 - `approvedAverage`
@@ -886,6 +996,7 @@ Relaciones clave:
 - `capacity: { activeStudents, pendingCapacity, totalCapacity }`
 - `classes: DirectorCourseDto[]`
 - `teacherAvailability: TeacherAvailabilityDto[]`
+- Nota normativa: `teacherAvailability` y `GET /api/v1/director/teacher-availability` deben compartir la misma fuente de datos y estructura.
 
 ### `DirectorCourseDto`
 - `courseOfferingId`
@@ -895,9 +1006,11 @@ Relaciones clave:
 - `careerName`
 - `term`
 - `section`
+- `professorId?`
 - `professorName`
 - `seatsTaken`
 - `seatsTotal`
+- `gradesPublished`
 - `status`
 
 ### `CreateDirectorCourseRequestDto`
@@ -937,13 +1050,16 @@ Relaciones clave:
 
 ### `DirectorProfessorDto`
 - `professorId`
+- `professorCode`
 - `name`
 - `department`
 - `loadAssigned`
 - `loadMax` (5)
+- Nota normativa: el frontend debe calcular barra/porcentaje desde `loadAssigned/loadMax` y no usar constantes locales hardcodeadas.
 
 ### `DirectorStudentDto`
 - `studentId`
+- `studentCode`
 - `name`
 - `program`
 - `semester`
@@ -961,6 +1077,10 @@ Relaciones clave:
 - `name`
 - `speciality`
 - `status`
+- Nota normativa: `professorId` es obligatorio para trazabilidad y sincronizacion con acciones de asignacion docente.
+
+### `TeacherAvailabilityListDto`
+- `items: TeacherAvailabilityDto[]`
 
 ### `CurriculumVersionDto`
 - `curriculumVersionId`
@@ -972,11 +1092,22 @@ Relaciones clave:
 - `effectiveTo?`
 - `isActive`
 
+### `CreateCurriculumVersionRequestDto`
+- `careerId`
+- `versionCode`
+- `displayName`
+- `effectiveFrom`
+- `effectiveTo?`
+
 ### `StudentCurriculumAssignmentDto`
 - `studentId`
 - `curriculumVersionId`
 - `assignedAt`
 - `isActive`
+
+### `AssignStudentCurriculumRequestDto`
+- `curriculumVersionId`
+- `assignedAt?`
 
 ### `CourseEquivalenceDto`
 - `equivalenceId`
@@ -988,6 +1119,52 @@ Relaciones clave:
 - `effectiveFrom`
 - `effectiveTo?`
 - `isActive`
+
+### `CreateCourseEquivalenceRequestDto`
+- `sourceCourseId`
+- `targetCourseId`
+- `equivalenceType` (`Total` | `Parcial`)
+- `effectiveFrom`
+- `effectiveTo?`
+- `isActive?`
+
+## 11.5 Mapeo FE/BE (Adapter de integracion)
+
+Regla:
+- El backend mantiene DTO canonico; el frontend adapta nombres internos mediante mapper/adapter.
+- Todos los campos `*Id` son identificadores tecnicos (UUID/PK). Para columnas visuales rotuladas como "ID" usar `*Code`.
+
+| Campo frontend actual | Campo API canonico | Direccion de mapeo | Observaciones |
+|---|---|---|---|
+| `offeringId` | `courseOfferingId` | FE -> API y API -> FE | Identidad operativa de oferta. |
+| `course.id` (clase profesor/director) | `classId` o `courseOfferingId` | API -> FE | En profesor se conserva `classId` como alias; en director se usa `courseOfferingId`. |
+| `course.code` (vista profesor) | `baseCourseCode` | API -> FE | Codigo academico estable del curso base. |
+| `course.title` (vista profesor) | `courseName` | API -> FE | Titulo mostrado en tarjetas/listado de clases del profesor. |
+| `course.seats` (vista estudiante/director) | derivado de `seatsTaken` + `seatsTotal` | API -> FE | Campo visual combinado (`${seatsTaken}/${seatsTotal}`). |
+| `course.gradesPublished` (vista profesor/director) | `gradesPublished` | API -> FE | Controla habilitacion de acciones de publicar/cerrar. |
+| `career.id` (dropdown catalogo) | `careerId` | API -> FE | Catalogos de onboarding estudiante y creacion de oferta director. |
+| `career.name` (dropdown catalogo) | `careerName` | API -> FE | Etiqueta visible de carrera en selects de UI. |
+| `career.code` (dropdown catalogo) | `careerCode` | API -> FE | Codigo corto institucional de carrera cuando UI lo requiera. |
+| `baseCourse.id` (dropdown catalogo) | `courseId` | API -> FE | Identidad de curso base para crear oferta (`baseCourseId`). |
+| `baseCourse.name` (dropdown catalogo) | `courseName` | API -> FE | Texto visible del curso base en selects de director. |
+| `baseCourse.code` (dropdown catalogo) | `courseCode` | API -> FE | Codigo academico del curso base en selects de director. |
+| `course` | `courseName` | API -> FE | Texto visible del curso base. |
+| `career` | `careerName` | API -> FE | Nombre de carrera para tablas/tarjetas. |
+| `professor` | `professorName` | API -> FE | Nombre completo del docente asignado. |
+| `id` (fila oferta en UI) | `courseOfferingId` | API -> FE | Alias interno de componentes. |
+| `report.id` (tabla director) | `requestId` | API -> FE | Identificador de solicitud para historial de reportes. |
+| `student.id` (profesor alumnos) | `studentId` | API -> FE | Identificador tecnico para keys/acciones. |
+| `student.code` (profesor alumnos) | `studentCode` | API -> FE | Codigo visible en tabla/modal de alumnos. |
+| `student.name` (modal notas) | `studentName` | API -> FE | Campo para lista de alumnos por clase. |
+| `student.career` (modal notas/listado profesor) | `careerName` | API -> FE | Nombre legible de carrera en tablas de profesor. |
+| `student.id` (directorio director) | `studentId` | API -> FE | Identificador tecnico para acciones/trazabilidad. |
+| `student.code` (directorio director) | `studentCode` | API -> FE | Codigo visible en columna "ID". |
+| `student.average` (directorio director) | `average0to100` | API -> FE | Promedio global 0-100 para UI del director. |
+| `professor.id` (directorio director) | `professorId` | API -> FE | Identificador tecnico para acciones y trazabilidad. |
+| `professor.code` (directorio director) | `professorCode` | API -> FE | Codigo visible en columna "ID". |
+| `professor.load` (directorio director) | `loadAssigned` | API -> FE | Cantidad de cursos actualmente asignados. |
+| `professor.maxLoad` (directorio director) | `loadMax` | API -> FE | Limite maximo de carga docente (5 en MVP). |
+| `publicationStatus` | `status` | API -> FE | Si UI requiere badge/tono derivado, se calcula en cliente. |
 
 ---
 
@@ -1001,13 +1178,34 @@ Codigos HTTP base:
 - `409 Conflict`
 - `422 Unprocessable Entity`
 
+Tabla normativa `error funcional -> HTTP status`:
+
+| HTTP | Codigos funcionales |
+|---|---|
+| `401` | `AUTH_INVALID_CREDENTIALS`, `AUTH_INVALID_TOKEN`, `AUTH_TOKEN_EXPIRED`, `AUTH_REFRESH_INVALID`, `AUTH_REFRESH_EXPIRED` |
+| `403` | `AUTH_USER_DISABLED`, `FORBIDDEN_ROLE`, `FORBIDDEN_CLASS_ACCESS` |
+| `404` | `STUDENT_PROFILE_NOT_FOUND`, `PROFESSOR_PROFILE_NOT_FOUND`, `DIRECTOR_PROFILE_NOT_FOUND`, `STUDENT_NOT_FOUND`, `CLASS_NOT_FOUND`, `COURSE_NOT_FOUND`, `COURSE_OFFERING_NOT_FOUND`, `CAREER_NOT_FOUND`, `CURRICULUM_VERSION_NOT_FOUND` |
+| `409` | `STUDENT_ALREADY_HAS_CAREER`, `ENROLLMENT_ALREADY_EXISTS`, `COURSE_OFFERING_ALREADY_PUBLISHED`, `COURSE_OFFERING_ALREADY_ACTIVE`, `COURSE_OFFERING_ALREADY_CLOSED`, `CLASS_ALREADY_CLOSED`, `CURRICULUM_VERSION_ALREADY_EXISTS`, `CURRICULUM_ASSIGNMENT_CONFLICT`, `COURSE_EQUIVALENCE_DUPLICATE`, `COURSE_OFFERING_CODE_ALREADY_EXISTS` |
+| `422` | `STUDENT_WITHOUT_CAREER`, `CURRICULUM_VERSION_NOT_ASSIGNED`, `CAREER_WITHOUT_ACTIVE_CURRICULUM`, `COURSE_OFFERING_NOT_PUBLISHED`, `COURSE_OFFERING_CAPACITY_EXHAUSTED`, `CAREER_MISMATCH`, `CLASS_NOT_ACTIVE_FOR_GRADING`, `GRADE_OUT_OF_RANGE`, `GRADE_EDIT_LOCKED`, `GRADES_ALREADY_PUBLISHED`, `GRADES_INCOMPLETE`, `COURSE_CANNOT_CLOSE_UNTIL_GRADES_PUBLISHED`, `COURSE_EQUIVALENCE_INVALID`, `INVALID_CAPACITY`, `REPORT_TYPE_INVALID` |
+
+Nota normativa:
+- Este mapeo es obligatorio y prevalece sobre decisiones puntuales por endpoint.
+
 Codigos funcionales sugeridos:
 - `AUTH_INVALID_CREDENTIALS`
 - `AUTH_INVALID_TOKEN`
 - `AUTH_TOKEN_EXPIRED`
 - `AUTH_REFRESH_INVALID`
 - `AUTH_REFRESH_EXPIRED`
+- `AUTH_USER_DISABLED`
 - `FORBIDDEN_ROLE`
+- `CLASS_NOT_FOUND`
+- `CLASS_NOT_ACTIVE_FOR_GRADING`
+- `FORBIDDEN_CLASS_ACCESS`
+- `PROFESSOR_PROFILE_NOT_FOUND`
+- `DIRECTOR_PROFILE_NOT_FOUND`
+- `INVALID_CAPACITY`
+- `STUDENT_NOT_FOUND`
 - `STUDENT_PROFILE_NOT_FOUND`
 - `STUDENT_WITHOUT_CAREER`
 - `CURRICULUM_VERSION_NOT_ASSIGNED`
@@ -1015,6 +1213,7 @@ Codigos funcionales sugeridos:
 - `CURRICULUM_VERSION_ALREADY_EXISTS`
 - `CURRICULUM_ASSIGNMENT_CONFLICT`
 - `CAREER_NOT_FOUND`
+- `CAREER_WITHOUT_ACTIVE_CURRICULUM`
 - `STUDENT_ALREADY_HAS_CAREER`
 - `COURSE_NOT_FOUND`
 - `COURSE_OFFERING_NOT_FOUND`
@@ -1047,6 +1246,8 @@ Reglas comunes para listados:
   - `search` opcional
   - `sortBy` opcional
   - `sortOrder` opcional (`asc`, `desc`)
+- Regla anti doble paginacion:
+  - si la API ya responde `data.items` + `meta.pagination`, el frontend no debe aplicar un segundo `slice`/paginacion local sobre esos `items`.
 
 Filtros esperados por modulo:
 - Cursos director: `status`, `careerId`.
@@ -1129,14 +1330,15 @@ Para ambientes:
 
 ## 15. Orden recomendado de implementacion backend
 
-1. Auth base (login, me, refresh, logout).
-2. Catalogos y perfiles (`careers`, `students`, `professors`).
-3. Cursos + course offerings + curriculum.
-4. Endpoints estudiante (profile/dashboard/available/enroll/active/record).
-5. Endpoints profesor (classes/students/grades draft/publish/close).
-6. Endpoints director (dashboard/courses/create/publish/activate/close/assign-professor/professors/students/report-requests).
-7. Endurecimiento de validaciones y codigos de error.
-8. Integracion frontend por modulo con feature flags.
+1. Auth base (`login`, `me`, `refresh`, `logout`).
+2. Catalogos y perfiles (`careers`, `students`, `professors`, `directors`, `catalog/careers`, `catalog/base-courses`).
+3. Curso base + ofertas + inscripciones.
+4. Endpoints estudiante completos (`profile`, `career-enrollment`, `dashboard`, `courses/available`, `courses/active`, `courses/{offeringId}/enroll`, `academic-record`, `curriculum/progress`, `report-requests`).
+5. Endpoints profesor completos (`dashboard`, `classes`, `class-students`, `grades/draft`, `grades/publish`, `close`, `students`).
+6. Endpoints director operativos (`dashboard`, `courses`, `publish`, `activate`, `close`, `assign-professor`, `professors`, `students`, `report-requests`, `teacher-availability`).
+7. Gestion curricular/equivalencias (`curriculum-versions`, `curriculum-assignment`, `course-equivalences`).
+8. Hardening transversal (errores, envelope, paginacion, validaciones cruzadas).
+9. Integracion frontend por modulo con feature flags.
 
 ---
 
