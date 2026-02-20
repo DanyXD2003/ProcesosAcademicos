@@ -29,6 +29,8 @@ src/
 - Playbook backend: `docs/CODEX_BACKEND.md`
 - Setup operativo: `docs/BACKEND_SETUP.md`
 - Histórico técnico: `docs/HISTORICO.md`
+- Manual funcional de usuario: `docs/MANUAL_USUARIO_FUNCIONAL.md`
+- Casos de uso y flujos: `docs/CASOS_DE_USO_Y_FLUJOS.md`
 
 ## Quickstart backend (local)
 
