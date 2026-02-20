@@ -1,4 +1,6 @@
-import { Link, NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAcademicDemo } from "../../context/AcademicDemoContext";
+import { appPaths } from "../../router/paths";
 
 function NavItem({ item }) {
   if (item.to) {
@@ -32,6 +34,14 @@ function NavItem({ item }) {
 }
 
 export default function RoleSidebar({ roleLabel, profile, navItems, isOpen, onClose }) {
+  const navigate = useNavigate();
+  const { logout } = useAcademicDemo();
+
+  async function handleLogout() {
+    await logout();
+    navigate(appPaths.login, { replace: true });
+  }
+
   return (
     <>
       <aside
@@ -73,13 +83,14 @@ export default function RoleSidebar({ roleLabel, profile, navItems, isOpen, onCl
         </nav>
 
         <div className="mt-auto pt-8">
-          <Link
-            className="flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20"
-            to="/login"
+          <button
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20"
+            onClick={handleLogout}
+            type="button"
           >
             <span className="material-symbols-outlined text-[20px]">logout</span>
             Cerrar sesion
-          </Link>
+          </button>
         </div>
       </aside>
       {isOpen ? (

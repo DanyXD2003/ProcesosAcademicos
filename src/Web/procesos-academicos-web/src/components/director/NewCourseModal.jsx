@@ -16,6 +16,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
   const baseForm = useMemo(() => initialForm(careers, baseCourses, currentTerm), [baseCourses, careers, currentTerm]);
   const [formState, setFormState] = useState(baseForm);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -24,6 +25,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
 
     setFormState(baseForm);
     setErrorMessage("");
+    setIsSubmitting(false);
   }, [baseForm, open]);
 
   if (!open) {
@@ -37,10 +39,11 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
     }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setIsSubmitting(true);
 
-    const creationResult = onCreate(formState);
+    const creationResult = await Promise.resolve(onCreate(formState));
     const normalizedResult =
       typeof creationResult === "boolean"
         ? { ok: creationResult }
@@ -49,20 +52,24 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
     if (!normalizedResult.ok) {
       if (normalizedResult.code === "INVALID_CAPACITY") {
         setErrorMessage("La capacidad debe ser mayor que 0.");
+        setIsSubmitting(false);
         return;
       }
 
       if (normalizedResult.code === "COURSE_OFFERING_CODE_ALREADY_EXISTS") {
         setErrorMessage("El codigo de oferta ya existe. Usa un codigo distinto.");
+        setIsSubmitting(false);
         return;
       }
 
       setErrorMessage("No se pudo crear la oferta. Verifica codigo unico y campos obligatorios.");
+      setIsSubmitting(false);
       return;
     }
 
     setFormState(baseForm);
     setErrorMessage("");
+    setIsSubmitting(false);
     onClose();
   }
 
@@ -85,6 +92,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Codigo de oferta</span>
               <input
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 onChange={(event) => updateField("offeringCode", event.target.value)}
                 placeholder="CL-2026-020 (opcional)"
                 type="text"
@@ -96,6 +104,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Seccion</span>
               <input
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 onChange={(event) => updateField("section", event.target.value)}
                 required
                 type="text"
@@ -108,6 +117,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
             <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Curso base</span>
             <select
               className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+              disabled={isSubmitting}
               onChange={(event) => updateField("baseCourseId", event.target.value)}
               required
               value={formState.baseCourseId}
@@ -125,6 +135,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Carrera</span>
               <select
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 onChange={(event) => updateField("careerId", event.target.value)}
                 required
                 value={formState.careerId}
@@ -141,6 +152,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Termino</span>
               <input
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 onChange={(event) => updateField("term", event.target.value)}
                 required
                 type="text"
@@ -154,6 +166,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Capacidad</span>
               <input
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 min={1}
                 onChange={(event) => updateField("capacity", Number(event.target.value))}
                 required
@@ -166,6 +179,7 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
               <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-slate-400">Profesor</span>
               <select
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-400"
+                disabled={isSubmitting}
                 onChange={(event) => updateField("professorId", event.target.value)}
                 value={formState.professorId}
               >
@@ -184,13 +198,18 @@ export default function NewCourseModal({ baseCourses, careers, currentTerm, onCl
           <footer className="flex justify-end gap-3 border-t border-slate-800 pt-4">
             <button
               className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+              disabled={isSubmitting}
               onClick={onClose}
               type="button"
             >
               Cancelar
             </button>
-            <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400" type="submit">
-              Crear borrador
+            <button
+              className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              type="submit"
+            >
+              {isSubmitting ? "Creando..." : "Crear borrador"}
             </button>
           </footer>
         </form>

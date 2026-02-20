@@ -41,6 +41,8 @@ export default function DirectorReportsPage() {
                 <th className="px-3 py-3">Tipo</th>
                 <th className="px-3 py-3">Fecha solicitud</th>
                 <th className="px-3 py-3">Fecha emision</th>
+                <th className="px-3 py-3">Fecha descarga</th>
+                <th className="px-3 py-3">Descargas</th>
               </tr>
             </thead>
             <tbody>
@@ -51,6 +53,12 @@ export default function DirectorReportsPage() {
                   <td className="px-3 py-3 text-slate-300">{report.requestType}</td>
                   <td className="px-3 py-3 text-slate-300">{report.requestedAt}</td>
                   <td className="px-3 py-3 text-slate-300">{report.issuedAt || "-"}</td>
+                  <td className="px-3 py-3 text-slate-300">{report.downloadedAt || "-"}</td>
+                  <td className="px-3 py-3">
+                    <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-semibold text-slate-200">
+                      {report.downloadsCount ?? 0}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

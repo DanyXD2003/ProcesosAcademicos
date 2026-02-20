@@ -89,7 +89,7 @@ export default function AssignProfessorModal({ offering, onClose, onConfirm, onS
           </div>
 
           <p className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-[11px] text-sky-100">
-            Esta asignacion se guarda en estado local del prototipo.
+            Esta asignacion se persiste en backend y se refleja en todas las vistas.
           </p>
         </div>
 

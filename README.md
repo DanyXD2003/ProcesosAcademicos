@@ -1,85 +1,64 @@
 # ProcesosAcademicos
 
-Base de arquitectura DDD con backend en .NET y frontend en React + Tailwind.
-
-## Documentacion Historica
-
-Para trazabilidad tecnica completa de lo implementado hasta ahora (fases, decisiones, estado real y pendientes), revisar:
-
-- `docs/HISTORICO.md`
-
-## Integracion Front/Back
-
-Contrato tecnico inicial para conectar frontend y backend del flujo de publicacion/inscripcion:
-
-- `docs/INTEGRACION_FRONT_BACK.md`
-
-## Guia De Implementacion Backend Con IA
-
-Playbook operativo para ejecutar la implementacion del backend por fases (DDD + EF Core code-first):
-
-- `docs/CODEX_BACKEND.md`
+Plataforma academica con backend `.NET 9` (DDD + CQRS + EF Core + PostgreSQL/Neon) y frontend `React + Vite + Tailwind` consumiendo API real `/api/v1`.
 
 ## Estructura
 
-```
-.
-├── src/
-│   ├── Backend/
-│   │   ├── Core/
-│   │   │   └── ProcesosAcademicos.Domain/
-│   │   ├── Application/
-│   │   │   └── ProcesosAcademicos.Application/
-│   │   ├── Infrastructure/
-│   │   │   └── ProcesosAcademicos.Infrastructure/
-│   │   └── Api/
-│   │       └── ProcesosAcademicos.Api/
-│   └── Web/
-│       └── procesos-academicos-web/
-└── ProcesosAcademicos.sln
+```text
+src/
+  Backend/
+    Core/ProcesosAcademicos.Domain
+    Application/ProcesosAcademicos.Application
+    Infrastructure/ProcesosAcademicos.Infrastructure
+    Api/ProcesosAcademicos.Api
+  Web/procesos-academicos-web
 ```
 
-## Relaciones entre capas
+## Estado actual
 
-- `Domain`: capa base del dominio (plantilla inicial).
-- `Application`: capa de casos de uso y contratos (plantilla inicial).
-- `Infrastructure`: capa de persistencia e integraciones (plantilla inicial).
-- `Api`: capa de entrada HTTP (plantilla inicial).
-- `Web`: SPA React + Tailwind por roles (`login`, `estudiante`, `profesor`, `director`) con datos mock visuales.
+- Backend implementado con:
+  - Auth JWT + refresh token en DB
+  - Modulos Student/Professor/Director/Catalog
+  - Envelope uniforme `data/meta/errors`
+  - EF Core code-first + migracion inicial + seed minimo
+- Frontend conectado a API real (sin mocks de login/rol).
 
-Dependencias de proyectos:
+## Documentacion clave
 
-- `Application -> Domain`
-- `Infrastructure -> Application + Domain`
-- `Api -> Application + Infrastructure`
+- Contrato integración: `docs/INTEGRACION_FRONT_BACK.md`
+- Playbook backend: `docs/CODEX_BACKEND.md`
+- Setup operativo: `docs/BACKEND_SETUP.md`
+- Histórico técnico: `docs/HISTORICO.md`
 
-Estado actual del backend:
+## Quickstart backend (local)
 
-- Esqueleto DDD limpio para iniciar implementación desde cero.
-- Se conservan proyectos `.csproj` y dependencias entre capas.
-- No hay código fuente ni configuración funcional en backend en esta etapa.
+1. Configurar secretos (`ConnectionStrings:Main`, `Jwt:SigningKey`) en `src/Backend/Api/ProcesosAcademicos.Api`.
+2. Aplicar migraciones: `scripts/backend/update-dev.sh`
+3. Levantar API:
 
-## Ejecutar frontend
+```bash
+cd src/Backend/Api/ProcesosAcademicos.Api
+ASPNETCORE_ENVIRONMENT=Development Database__ApplyMigrationsOnStartup=true dotnet run --urls http://localhost:5055
+```
+
+4. Smoke:
+
+```bash
+BASE_URL=http://localhost:5055 scripts/backend/smoke.sh
+```
+
+## Quickstart frontend (local)
 
 ```bash
 cd src/Web/procesos-academicos-web
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-Rutas del frontend demo:
+`VITE_API_BASE_URL` por defecto apunta a `http://localhost:5055`.
 
-- `/` redirige a `/login`
-- `/login`
-- `/dashboard/estudiante?page=1`
-- `/dashboard/profesor?page=1`
-- `/dashboard/director?page=1`
+## Notas importantes
 
-Rutas de modulos por rol:
-
-- Director: `/dashboard/director/cursos?page=1`, `/dashboard/director/profesores?page=1`, `/dashboard/director/estudiantes?page=1`, `/dashboard/director/reportes?page=1`
-- Profesor: `/dashboard/profesor/mis-clases?page=1`, `/dashboard/profesor/horario?page=1`, `/dashboard/profesor/reportes?page=1`, `/dashboard/profesor/estudiantes?page=1`
-- Estudiante: `/dashboard/estudiante/perfil`, `/dashboard/estudiante/registro-academico?page=1`, `/dashboard/estudiante/configuracion`
-- Estudiante (inscripciones): `/dashboard/estudiante/mis-cursos`
-
-Nota: por ahora el frontend esta desacoplado del backend y no realiza llamadas a API.
+- El SQL de migraciones en `src/Backend/Infrastructure/ProcesosAcademicos.Infrastructure/Persistence/Migrations/*.sql` se mantiene versionado (auditoría/ejecución manual).
+- Tras cerrar integración/despliegue, rotar credenciales Neon y `Jwt:SigningKey`.

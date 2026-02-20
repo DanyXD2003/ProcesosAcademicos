@@ -26,6 +26,7 @@ export default function StudentDashboardPage() {
   const { page, totalPages, setPage } = usePaginationQuery(studentHistory.length, PAGE_SIZE);
   const startIndex = (page - 1) * PAGE_SIZE;
   const historyRows = studentHistory.slice(startIndex, startIndex + PAGE_SIZE);
+  const canRequestPensumClosure = pendingCurriculumCount <= 0;
 
   const dashboardStats = [
     {
@@ -87,24 +88,34 @@ export default function StudentDashboardPage() {
         <>
           <button
             className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
-            onClick={() => {
-              createStudentRequest("Certificacion de cursos");
-              setRequestMessage("Certificacion generada y descarga iniciada.");
+            onClick={async () => {
+              const ok = await createStudentRequest("Certificacion de cursos");
+              if (ok) {
+                setRequestMessage("Certificacion generada y descarga iniciada.");
+              }
             }}
             type="button"
           >
             Generar certificado
           </button>
           <button
-            className="rounded-xl border border-sky-400/50 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/10"
-            onClick={() => {
-              createStudentRequest("Cierre de pensum");
-              setRequestMessage("Cierre de pensum generado y descarga iniciada.");
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+              canRequestPensumClosure
+                ? "border-sky-400/50 text-sky-200 hover:bg-sky-500/10"
+                : "cursor-not-allowed border-slate-700 text-slate-400"
+            }`}
+            onClick={async () => {
+              const ok = await createStudentRequest("Cierre de pensum");
+              if (ok) {
+                setRequestMessage("Cierre de pensum generado y descarga iniciada.");
+              }
             }}
+            disabled={!canRequestPensumClosure}
             type="button"
           >
             Cierre de pensum
           </button>
+          {!canRequestPensumClosure ? <span className="text-xs text-slate-400">Te faltan {pendingCurriculumCount} cursos</span> : null}
         </>
       }
       navItems={getStudentSidebarItems()}

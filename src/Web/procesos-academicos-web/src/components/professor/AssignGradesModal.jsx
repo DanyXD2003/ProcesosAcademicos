@@ -47,9 +47,12 @@ export default function AssignGradesModal({ classItem, grades, onClose, onGradeC
                       <input
                         className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none transition focus:border-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={readOnly}
+                        inputMode="numeric"
                         max={100}
                         min={0}
                         onChange={(event) => onGradeChange(classItem.id, student.id, event.target.value)}
+                        onFocus={(event) => event.target.select()}
+                        step={1}
                         type="number"
                         value={grades?.[student.id] ?? ""}
                       />
